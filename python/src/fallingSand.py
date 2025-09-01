@@ -22,6 +22,12 @@ WOOD = 3
 FIRE = 4
 SMOKE = 5
 
+# PARTICULAS ACTIVAS
+active_sand = set()
+active_water = set()
+active_fire = {}
+active_smoke = set()
+
 # PYGAME
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -54,59 +60,98 @@ def draw():
 def in_bounds(x, y):
     return 0 <= x < COLS and 0 <= y < ROWS
 
-def swap(x1, y1, x2, y2):
+def swap_particles(x1, y1, x2, y2):
     grid[x1][y1], grid[x2][y2] = grid[x2][y2], grid[x1][y1]
+    for s in [active_sand, active_water, active_smoke]:
+        if (x1,y1) in s:
+            s.discard((x1,y1)); s.add((x2,y2))
+        elif (x2,y2) in s:
+            s.discard((x2,y2)); s.add((x1,y1))
+    if (x1,y1) in active_fire:
+        active_fire[(x2,y2)] = active_fire.pop((x1,y1))
+    elif (x2,y2) in active_fire:
+        active_fire[(x1,y1)] = active_fire.pop((x2,y2))
 
 def update():
     
-    for y in reversed(range(ROWS)):
-        for x in range(COLS):
-            p = grid[x][y]
-            if p == SAND:
-                if in_bounds(x, y+1):
-                    below = grid[x][y+1]
-                    if below == EMPTY or below == WATER:
-                        swap(x, y, x, y+1)
-                    else:
-                        dx = random.choice([-1, 1])
-                        if in_bounds(x + dx, y + 1):
-                            diag = grid[x + dx][y + 1]
-                            if diag == EMPTY or diag == WATER:
-                                swap(x, y, x + dx, y + 1)
+# --- Arena ---
+    for x, y in list(active_sand):
+        if not in_bounds(x, y): continue
+        below = (x, y+1)
+        if in_bounds(*below) and (grid[below[0]][below[1]] in [EMPTY, WATER]):
+            swap_particles(x, y, *below)
+        else:
+            dx = random.choice([-1,1])
+            diag = (x+dx, y+1)
+            if in_bounds(*diag) and grid[diag[0]][diag[1]] in [EMPTY, WATER]:
+                swap_particles(x, y, *diag)
 
-            elif p == WATER:
-                if in_bounds(x, y+1):
-                    if grid[x][y+1] == EMPTY:
-                        swap(x, y, x, y+1)
-                    else:
-                        dx = random.choice([-1, 1])
-                        if in_bounds(x + dx, y):
-                            if grid[x + dx][y] == EMPTY:
-                                swap(x, y, x + dx, y)
+    # --- Agua ---
+    for x, y in list(active_water):
+        if not in_bounds(x, y): continue
+        below = (x, y+1)
+        if in_bounds(*below) and grid[below[0]][below[1]] == EMPTY:
+            swap_particles(x, y, *below)
+        else:
+            dx = random.choice([-1,1])
+            side = (x+dx, y)
+            if in_bounds(*side) and grid[side[0]][side[1]] == EMPTY:
+                swap_particles(x, y, *side)
 
-            elif p == FIRE:
-                if in_bounds(x, y+1):
-                    if grid[x][y+1] == WOOD:
-                        grid[x][y+1] = FIRE
-                for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
-                    nx, ny = x + dx, y + dy
-                    if in_bounds(nx, ny) and grid[nx][ny] == WOOD:
-                        grid[nx][ny] = FIRE
-                if random.random() < 0.02:
-                    grid[x][y] = SMOKE
-                    if in_bounds(x, y-1) and grid[x][y-1] == EMPTY:
-                        grid[x][y-1] = SMOKE
+    # --- Fuego ---
+    for x, y in list(active_fire):
+        if not in_bounds(x, y): continue
+        # Quemar madera adyacente
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1),(0,1)]:
+            nx, ny = x+dx, y+dy
+            if in_bounds(nx, ny) and grid[nx][ny] == WOOD:
+                add_particle(nx, ny, FIRE)
+        # Vida útil
+        active_fire[(x,y)] -= 1
+        if active_fire[(x,y)] <= 0 or random.random() < 0.02:
+            remove_particle(x, y)
+            above = (x, y-1)
+            if in_bounds(*above) and grid[above[0]][above[1]] == EMPTY:
+                add_particle(*above, SMOKE)
 
-            elif p == SMOKE:
-                if in_bounds(x, y-1) and grid[x][y-1] == EMPTY:
-                    swap(x, y, x, y-1)
-                else:
-                    if random.random() < 0.01:
-                        grid[x][y] = EMPTY
+    # --- Humo ---
+    for x, y in list(active_smoke):
+        if not in_bounds(x, y): continue
+        above = (x, y-1)
+        if in_bounds(*above) and grid[above[0]][above[1]] == EMPTY:
+            swap_particles(x, y, *above)
+        else:
+            if random.random() < 0.01:
+                remove_particle(x, y)
+            else:
+                dx = random.choice([-1,1])
+                side = (x+dx, y)
+                if in_bounds(*side) and grid[side[0]][side[1]] == EMPTY:
+                    swap_particles(x, y, *side)
+
+
 
 def add_particle(x, y, p_type):
-    if in_bounds(x, y):
-        grid[x][y] = p_type
+    if not in_bounds(x, y):
+        return;
+
+    grid[x][y] = p_type
+    if p_type == SAND:
+        active_sand.add((x, y))
+    elif p_type == WATER:
+        active_water.add((x, y))
+    elif p_type == FIRE:
+        active_fire[(x, y)] = random.randint(30, 100)  # vida útil en frames
+    elif p_type == SMOKE:
+        active_smoke.add((x, y))
+
+def remove_particle(x, y):
+    p = grid[x][y]
+    grid[x][y] = EMPTY
+    if p == SAND: active_sand.discard((x, y))
+    elif p == WATER: active_water.discard((x, y))
+    elif p == FIRE: active_fire.pop((x, y), None)
+    elif p == SMOKE: active_smoke.discard((x, y))
 
 def main():
     running = True
