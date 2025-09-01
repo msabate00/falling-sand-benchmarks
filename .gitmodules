@@ -1,0 +1,6 @@
+[submodule "opengl/external/glfw"]
+	path = opengl/external/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "opengl/external/glad"]
+	path = opengl/external/glad
+	url = https://github.com/Dav1dde/glad.git

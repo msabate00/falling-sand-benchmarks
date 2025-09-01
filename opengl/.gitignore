@@ -1,0 +1,51 @@
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.ncb
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.VC.opendb
+
+# Build
+build/
+out/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.log
+
+# Dependencias descargadas
+_deps/
+glad-subbuild/
+glfw-subbuild/
+
+# Visual Studio Code
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Compilados
+*.obj
+*.o
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.idb
+*.exp
+
+# Temporal
+*.tmp
+*.temp
+
+# Archivos generados por CMake
+install_manifest.txt
+Testing/
+CTestTestfile.cmake

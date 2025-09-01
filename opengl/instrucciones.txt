@@ -1,0 +1,9 @@
+1 - Clonar el repositorio
+2 - Borrar cualquier carpeta build dentro de opengl
+3 - Abrir Developer Command Prompt for VS2022 (la consola de VS) y ejecutar:
+
+mkdir build
+cd build
+cmake .. -G "Visual Studio 17 2022"
+
+4 - Abrir desde la carpeta o ejecutando la sln
