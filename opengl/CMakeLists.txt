@@ -25,7 +25,7 @@ target_include_directories(glad_gl_core_33 PUBLIC
 add_executable(FallingSand
   src/main.cpp
   src/engine.cpp
-  # src/particle.cpp
+  src/renderer.cpp
 )
 target_include_directories(FallingSand PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include

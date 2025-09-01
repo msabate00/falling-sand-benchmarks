@@ -1,8 +1,9 @@
 #pragma once
+#include <cstdint>
 
-enum class Material : uint8_t { Empty, Sand, Water, Stone };
+enum class Material : uint8_t { Empty = 0, Sand = 1, Water = 2, Stone = 3 };
 
 struct Cell {
-    Material m;
-    uint8_t meta = 0;
+    Material m = Material::Empty;
+    uint8_t  meta = 0;
 };
