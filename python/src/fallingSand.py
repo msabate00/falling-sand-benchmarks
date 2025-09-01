@@ -168,6 +168,7 @@ def main():
     running = True
     current_particle = SAND
     MOUSE_AREA = 2
+    GAME_SPEED = 90
 
     while running:
         for event in pygame.event.get():
@@ -184,8 +185,17 @@ def main():
                     current_particle = FIRE
                 elif event.key == pygame.K_5:
                     current_particle = SMOKE
+
             elif event.type == pygame.MOUSEWHEEL:
                 MOUSE_AREA = max(1, min(MOUSE_AREA + event.y, 30))
+
+
+        KEYS_PRESSED = pygame.key.get_pressed()
+        if KEYS_PRESSED[pygame.K_UP]:
+            GAME_SPEED = max(0, min(GAME_SPEED + 5, 9999))
+        elif KEYS_PRESSED[pygame.K_DOWN]:
+            GAME_SPEED = max(0, min(GAME_SPEED - 5, 9999))
+
 
 
         mouse_pressed = pygame.mouse.get_pressed()
@@ -197,7 +207,10 @@ def main():
         update()
         draw()
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(GAME_SPEED)
+
+        fps = int(clock.get_fps())
+        pygame.display.set_caption(f"Falling Sand Simulator - FPS: {fps} - TGT FPS: {GAME_SPEED}")
 
     pygame.quit()
 
