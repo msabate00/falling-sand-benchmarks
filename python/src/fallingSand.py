@@ -2,9 +2,10 @@ import pygame
 import random
 
 # VENTANA Y CELDAS
-WIDTH, HEIGHT = 400, 300
+WIDTH, HEIGHT = 800, 600
 CELL_SIZE = 4
 COLS, ROWS = WIDTH // CELL_SIZE, HEIGHT // CELL_SIZE
+
 
 # COLORES
 COLOR_BG = (0, 0, 0)
@@ -25,6 +26,7 @@ SMOKE = 5
 # PARTICULAS ACTIVAS
 active_sand = set()
 active_water = set()
+active_wood = set()
 active_fire = {}
 active_smoke = set()
 
@@ -39,30 +41,28 @@ grid = [[EMPTY for _ in range(ROWS)] for _ in range(COLS)]
 
 def draw():
     screen.fill(COLOR_BG)
-    for x in range(COLS):
-        for y in range(ROWS):
-            p = grid[x][y]
-            if p == SAND:
-                color = COLOR_SAND
-            elif p == WATER:
-                color = COLOR_WATER
-            elif p == WOOD:
-                color = COLOR_WOOD
-            elif p == FIRE:
-                color = COLOR_FIRE
-            elif p == SMOKE:
-                color = COLOR_SMOKE
-            else:
-                continue
-            rect = (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(screen, color, rect)
+
+    for x,y in active_sand:
+        pygame.draw.rect(screen, COLOR_SAND, (x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    for x,y in active_water:
+        pygame.draw.rect(screen, COLOR_WATER, (x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    for x,y in active_wood:
+        pygame.draw.rect(screen, COLOR_WOOD, (x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    for x,y in active_fire:
+        pygame.draw.rect(screen, COLOR_FIRE, (x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    for x,y in active_smoke:
+        pygame.draw.rect(screen, COLOR_SMOKE, (x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 def in_bounds(x, y):
     return 0 <= x < COLS and 0 <= y < ROWS
 
 def swap_particles(x1, y1, x2, y2):
     grid[x1][y1], grid[x2][y2] = grid[x2][y2], grid[x1][y1]
-    for s in [active_sand, active_water, active_smoke]:
+    for s in [active_sand, active_water, active_smoke, active_wood]:
         if (x1,y1) in s:
             s.discard((x1,y1)); s.add((x2,y2))
         elif (x2,y2) in s:
@@ -102,7 +102,7 @@ def update():
     for x, y in list(active_fire):
         if not in_bounds(x, y): continue
         # Quemar madera adyacente
-        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1),(0,1)]:
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1),(1,1),(-1,-1),(-1,1),(1,-1)]:
             nx, ny = x+dx, y+dy
             if in_bounds(nx, ny) and grid[nx][ny] == WOOD:
                 add_particle(nx, ny, FIRE)
@@ -131,10 +131,18 @@ def update():
 
 
 
+def add_particle_area(x, y, p_type, size=2):
+    for dx in range(-size, size+1):
+        for dy in range(-size, size+1):
+            if dx*dx + dy*dy <= size*size:
+                add_particle(x+dx, y+dy, p_type)
+
+
 def add_particle(x, y, p_type):
     if not in_bounds(x, y):
         return;
 
+    remove_particle(x,y)
     grid[x][y] = p_type
     if p_type == SAND:
         active_sand.add((x, y))
@@ -144,6 +152,8 @@ def add_particle(x, y, p_type):
         active_fire[(x, y)] = random.randint(30, 100)  # vida útil en frames
     elif p_type == SMOKE:
         active_smoke.add((x, y))
+    elif p_type == WOOD:
+        active_wood.add((x,y))
 
 def remove_particle(x, y):
     p = grid[x][y]
@@ -152,10 +162,12 @@ def remove_particle(x, y):
     elif p == WATER: active_water.discard((x, y))
     elif p == FIRE: active_fire.pop((x, y), None)
     elif p == SMOKE: active_smoke.discard((x, y))
+    elif p == WOOD: active_wood.discard((x,y))
 
 def main():
     running = True
     current_particle = SAND
+    MOUSE_AREA = 2
 
     while running:
         for event in pygame.event.get():
@@ -172,12 +184,15 @@ def main():
                     current_particle = FIRE
                 elif event.key == pygame.K_5:
                     current_particle = SMOKE
+            elif event.type == pygame.MOUSEWHEEL:
+                MOUSE_AREA = max(1, min(MOUSE_AREA + event.y, 30))
+
 
         mouse_pressed = pygame.mouse.get_pressed()
         if mouse_pressed[0]:
             mx, my = pygame.mouse.get_pos()
             gx, gy = mx // CELL_SIZE, my // CELL_SIZE
-            add_particle(gx, gy, current_particle)
+            add_particle_area(gx, gy, current_particle, MOUSE_AREA)
 
         update()
         draw()
