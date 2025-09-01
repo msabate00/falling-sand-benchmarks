@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <glad/glad.h>   
+#include <GLFW/glfw3.h> 
 #include "particle.h"
 
 class Engine {
