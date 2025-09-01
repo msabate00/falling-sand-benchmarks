@@ -1,5 +1,8 @@
 import pygame
+import pygame_gui
 import random
+import tkinter as tk
+from tkinter import filedialog
 
 # VENTANA Y CELDAS
 WIDTH, HEIGHT = 800, 600
@@ -33,8 +36,72 @@ active_smoke = set()
 # PYGAME
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
+manager = pygame_gui.UIManager((WIDTH, HEIGHT))
 pygame.display.set_caption("Falling Sand Simulator")
 clock = pygame.time.Clock()
+
+# UI
+save_button = pygame_gui.elements.UIButton(
+    relative_rect=pygame.Rect((650, 50), (120, 40)),
+    text='Guardar',
+    manager=manager
+)
+load_button = pygame_gui.elements.UIButton(
+    relative_rect=pygame.Rect((650, 100), (120, 40)),
+    text='Cargar',
+    manager=manager
+)
+
+def save_grid_txt():
+    root = tk.Tk()
+    root.withdraw() 
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".txt",
+        filetypes=[("Text files","*.txt"), ("All files","*.*")],
+        title="Guardar Grid"
+    )
+    if not file_path:
+        return
+
+    with open(file_path, "w") as f:
+        for y in range(ROWS):
+            line = []
+            for x in range(COLS):
+                line.append(str(grid[x][y]))
+            f.write(" ".join(line) + "\n")
+    print(f"Grid guardado en {file_path}")
+
+def load_grid_txt():
+    global grid, active_sand, active_water, active_wood, active_fire, active_smoke
+
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.askopenfilename(
+        filetypes=[("Text files","*.txt"), ("All files","*.*")],
+        title="Abrir Grid"
+    )
+    if not file_path:
+        return
+
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    for y, line in enumerate(lines):
+        for x, val in enumerate(line.strip().split()):
+            grid[x][y] = int(val)
+
+    active_sand.clear(); active_water.clear(); active_wood.clear(); active_fire.clear(); active_smoke.clear()
+    for x in range(COLS):
+        for y in range(ROWS):
+            p = grid[x][y]
+            if p == SAND: active_sand.add((x, y))
+            elif p == WATER: active_water.add((x, y))
+            elif p == WOOD: active_wood.add((x, y))
+            elif p == FIRE: active_fire[(x, y)] = random.randint(30,100)
+            elif p == SMOKE: active_smoke.add((x, y))
+
+    print(f"Grid cargado desde {file_path}")
+
 
 # GRID
 grid = [[EMPTY for _ in range(ROWS)] for _ in range(COLS)]
@@ -189,6 +256,21 @@ def main():
             elif event.type == pygame.MOUSEWHEEL:
                 MOUSE_AREA = max(1, min(MOUSE_AREA + event.y, 30))
 
+            # UI EVENTS
+            manager.process_events(event)
+            if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == save_button:
+                    save_grid_txt()
+                elif event.ui_element == load_button:
+                    load_grid_txt()
+
+        mouse_pressed = pygame.mouse.get_pressed()
+
+        if mouse_pressed[0]:
+            mx, my = pygame.mouse.get_pos()
+            gx, gy = mx // CELL_SIZE, my // CELL_SIZE
+            add_particle_area(gx, gy, current_particle, MOUSE_AREA)
+
 
         KEYS_PRESSED = pygame.key.get_pressed()
         if KEYS_PRESSED[pygame.K_UP]:
@@ -196,16 +278,15 @@ def main():
         elif KEYS_PRESSED[pygame.K_DOWN]:
             GAME_SPEED = max(0, min(GAME_SPEED - 5, 9999))
 
+        
 
-
-        mouse_pressed = pygame.mouse.get_pressed()
-        if mouse_pressed[0]:
-            mx, my = pygame.mouse.get_pos()
-            gx, gy = mx // CELL_SIZE, my // CELL_SIZE
-            add_particle_area(gx, gy, current_particle, MOUSE_AREA)
-
+        
         update()
         draw()
+        
+        manager.update(clock.tick(GAME_SPEED)/1000.0)
+        manager.draw_ui(screen)
+        
         pygame.display.flip()
         clock.tick(GAME_SPEED)
 
