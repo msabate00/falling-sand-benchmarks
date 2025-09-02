@@ -90,7 +90,7 @@ int main() {
         glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        renderer->draw(engine.frontBuffer(), gridW, gridH, usePoints, 1.0f);
+        renderer->draw(engine.frontBuffer(), gridW, gridH, winW, winH);
 
         glfwSwapBuffers(window);
         glfwGetWindowSize(window, &winW, &winH);

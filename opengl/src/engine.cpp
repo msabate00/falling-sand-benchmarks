@@ -55,7 +55,7 @@ bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
 
     back[ni] = c;
     back[si] = dst;
-    // no dirty-marking
+
     return true;
 }
 
@@ -91,5 +91,4 @@ void Engine::paint(int cx, int cy, Material m, int r) {
             int dx = x - cx, dy = y - cy;
             if (dx * dx + dy * dy <= r2) front[idx(x, y)].m = (u8)m;
         }
-    // no dirty-marking
 }

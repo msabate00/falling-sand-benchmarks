@@ -40,20 +40,14 @@ public:
     bool paused = false;
 
 private:
-    // Grid + doble buffer
     int w, h;
     std::vector<Cell> front, back;
 
-    // Timestep fijo
     float accumulator = 0.f;
     static constexpr float fixedStep = 1.f / 120.f;
     int parity = 0;
 
-    
-
-    // sim
     void step();
     void swapBuffers() { front.swap(back); }
 
-    
 };
