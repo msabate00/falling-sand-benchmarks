@@ -7,6 +7,14 @@ uniform vec2 uGrid;        // (w,h)
 uniform vec2 uView;        // viewport px
 layout(std140) uniform Palette { vec4 colors[256]; };
 
+// hash determinista por celda
+float hash2(ivec2 p){
+    uint x = uint(p.x)*374761393u ^ uint(p.y)*668265263u;
+    x = (x ^ (x>>13)) * 1274126177u;
+    x ^= x >> 16u;
+    return float(x & 1023u) / 1023.0; // [0,1]
+}
+
 void main(){
   vec2 scale = floor(uView / uGrid);
   float s = max(1.0, min(scale.x, scale.y));
@@ -24,13 +32,21 @@ void main(){
   vec4 c = colors[int(m)];
   if (c.a <= 0.0) discard;
 
-  vec2 cell = fract(uv2 * uGrid);       // 0..1 en la celda
-  vec2 p = cell - vec2(0.5);            // centro (0,0)
+  // -------- variacion de color por celda --------
+  ivec2 cellId = ivec2(clamp(floor(uv2 * uGrid), vec2(0), uGrid - 1.0));
+  float n = hash2(cellId)*2.0 - 1.0;  // [-1,1]
+  float k = 0.15;                     // intensidad (6%)
+  c.rgb = clamp(c.rgb * (1.0 + k*n), 0.0, 1.0);
+  // ----------------------------------------------
+
+  vec2 cell = fract(uv2 * uGrid); 
+  vec2 p = cell - vec2(0.5);        
   float r = length(p);
 
-  // Parámetros del “disco”
-  float radius  = 0.35;                 // 0..0.5
-  float feather = 0.30;                 // ancho del borde suave
+   // --------- Parametros de los puntos ----------
+  float radius  = 0.35;
+  float feather = 0.30;
+  // ----------------------------------------------
 
   float alpha = 1.0 - smoothstep(radius, radius + feather, r);
   o = vec4(c.rgb, c.a * alpha);
