@@ -8,11 +8,12 @@ public:
     Engine(int gridW, int gridH);
 
     void update(float dt);
-    void draw();                          // GL_POINTS redondos
     void paint(int cx, int cy, Material m, int radius);
 
     int width()  const { return w; }
     int height() const { return h; }
+
+    const std::vector<Cell>& frontBuffer() const { return front; }
 
     // util
     int idx(int x, int y) const { return y * w + x; }

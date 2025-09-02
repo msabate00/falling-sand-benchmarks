@@ -3,6 +3,7 @@
 #include <chrono>
 #include "engine.h"
 #include "material.h"
+#include "renderer.h"
 
 static int winW = 1280, winH = 720;
 static int gridW = 320, gridH = 180;
@@ -12,6 +13,9 @@ static Material brushMat = Material::Sand;
 static int brushSize = 4;
 
 static Engine engine = Engine(gridW, gridH);
+static Renderer* renderer = nullptr;
+
+static bool usePoints = true;
 
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT)
@@ -43,6 +47,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
     case GLFW_KEY_P: engine.paused = !engine.paused; break;
     case GLFW_KEY_N: engine.stepOnce = true; break;
+    case GLFW_KEY_R: usePoints = !usePoints; break;
 
     default: break;
     }
@@ -55,6 +60,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     GLFWwindow* window = glfwCreateWindow(winW, winH, "FallingSand", nullptr, nullptr);
     glfwMakeContextCurrent(window);
+
     if (gladLoaderLoadGL() == 0) return -1;
     glfwSwapInterval(1);
 
@@ -63,6 +69,7 @@ int main() {
     glfwSetKeyCallback(window, key_callback);
 
     engine = Engine(gridW, gridH);
+    renderer = new Renderer();
 
     auto t0 = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
@@ -82,7 +89,8 @@ int main() {
         glViewport(0, 0, winW, winH);
         glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        engine.draw();
+
+        renderer->draw(engine.frontBuffer(), gridW, gridH, usePoints, 1.0f);
 
         glfwSwapBuffers(window);
         glfwGetWindowSize(window, &winW, &winH);

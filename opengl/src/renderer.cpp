@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include <glad/gl.h>
+#include <cmath>
 
 static unsigned int makeShader(unsigned int type, const char* src) {
     unsigned int s = glCreateShader(type);
@@ -98,4 +99,123 @@ void Renderer::drawGrid(const std::vector<uint8_t>& indices, int w, int h) {
 
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+void Renderer::initPointsOnce() {
+    if (pointsProg) return;
+
+    const char* vs = R"(#version 330 core
+        layout(location=0) in vec2 aPos;   // NDC
+        layout(location=1) in uint aId;    // materialId
+        uniform float uPointSize;
+        flat out uint vId;
+        void main(){
+            gl_Position = vec4(aPos,0,1);
+            gl_PointSize = uPointSize;
+            vId = aId;
+        })";
+
+    const char* fs = R"(#version 330 core
+        flat in uint vId;
+        out vec4 o;
+        uniform float uFeather = 1.0;
+        layout(std140) uniform Palette { vec4 colors[256]; };
+        void main(){
+            vec2 p = gl_PointCoord*2.0 - 1.0;
+            float r = length(p);
+            float alpha = 1.0 - smoothstep(1.0 - (uFeather*0.02), 1.0, r);
+            if (alpha <= 0.0) discard;
+            o = vec4(colors[vId].rgb, alpha);
+        })";
+
+    auto mk = [](GLenum t, const char* src) {
+        GLuint s = glCreateShader(t);
+        glShaderSource(s, 1, &src, nullptr);
+        glCompileShader(s);
+        return s;
+        };
+    GLuint v = mk(GL_VERTEX_SHADER, vs);
+    GLuint f = mk(GL_FRAGMENT_SHADER, fs);
+    pointsProg = glCreateProgram();
+    glAttachShader(pointsProg, v); glAttachShader(pointsProg, f); glLinkProgram(pointsProg);
+    glDeleteShader(v); glDeleteShader(f);
+
+    glGenVertexArrays(1, &pointsVAO);
+    glGenBuffers(1, &pointsVBO);
+    glGenBuffers(1, &paletteUBO);
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
+}
+
+void Renderer::draw(const std::vector<Cell>& cells, int w, int h, bool points, float feather) {
+    if (points) {
+        drawPoints(cells, w, h, feather);
+        return;
+    }
+    // Construir buffer de índices R8UI y usar drawGrid
+    scratch.resize((size_t)w * (size_t)h);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+            scratch[(size_t)y * (size_t)w + (size_t)x] = cells[(size_t)y * (size_t)w + (size_t)x].m;
+
+    drawGrid(scratch, w, h);
+}
+
+void Renderer::drawPoints(const std::vector<Cell>& cells, int w, int h, float feather) {
+    initPointsOnce();
+
+    // punto px integer-fit
+    GLint vp[4]; glGetIntegerv(GL_VIEWPORT, vp);
+    float psX = float(vp[2]) / float(w);
+    float psY = float(vp[3]) / float(h);
+    float pointSize = std::floor(std::fmin(psX, psY));
+    if (pointSize < 1.0f) pointSize = 1.0f;
+
+    struct V { float x, y; uint8_t id; };
+    std::vector<V> verts;
+    verts.reserve((size_t)w * (size_t)h / 2);
+
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            u8 id = cells[(size_t)y * (size_t)w + (size_t)x].m;
+            if (id == (u8)Material::Empty) continue;
+            float nx = ((x + 0.5f) / float(w)) * 2.f - 1.f;
+            float ny = -(((y + 0.5f) / float(h)) * 2.f - 1.f);
+            verts.push_back({ nx, ny, id });
+        }
+    }
+
+    // paleta desde MatProps
+    std::array<GLfloat, 256 * 4> palette{};
+    for (int i = 0; i < 256; i++) {
+        const MatProps& mp = matProps((u8)i);
+        palette[i * 4 + 0] = mp.r / 255.f;
+        palette[i * 4 + 1] = mp.g / 255.f;
+        palette[i * 4 + 2] = mp.b / 255.f;
+        palette[i * 4 + 3] = 1.0f;
+    }
+    glBindBuffer(GL_UNIFORM_BUFFER, paletteUBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(palette), palette.data(), GL_DYNAMIC_DRAW);
+    GLuint blockIndex = glGetUniformBlockIndex(pointsProg, "Palette");
+    glUniformBlockBinding(pointsProg, blockIndex, 0);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, paletteUBO);
+
+    // subir vértices
+    glUseProgram(pointsProg);
+    glUniform1f(glGetUniformLocation(pointsProg, "uPointSize"), pointSize);
+    glUniform1f(glGetUniformLocation(pointsProg, "uFeather"), feather);
+
+    glBindVertexArray(pointsVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pointsVBO);
+    glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(V), verts.data(), GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(V), (void*)offsetof(V, x));
+    glEnableVertexAttribArray(0);
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_BYTE, sizeof(V), (void*)offsetof(V, id));
+    glEnableVertexAttribArray(1);
+
+    glDrawArrays(GL_POINTS, 0, (GLsizei)verts.size());
 }
