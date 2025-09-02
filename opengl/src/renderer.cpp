@@ -82,7 +82,6 @@ void Renderer::uploadFullCPU(const std::vector<uint8_t>& img, int w, int h) {
 void Renderer::uploadRectPBO(const uint8_t* src, int rw, int rh, int x0, int y0, int texWNeeded, int texHNeeded) {
     if (rw <= 0 || rh <= 0) return;
 
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED_INTEGER, GL_UNSIGNED_BYTE, indices.data());
     glBindTexture(GL_TEXTURE_2D, tex);
     if (texW != texWNeeded || texH != texHNeeded) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, texWNeeded, texHNeeded, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, nullptr);
