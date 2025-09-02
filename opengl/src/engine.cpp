@@ -33,16 +33,13 @@ void Engine::update(float dt) {
 inline bool Engine::tryMove(int sx, int sy, int dx, int dy, const Cell& c) {
     int nx = sx + dx, ny = sy + dy;
     if (!inRange(nx, ny)) return false;
+    int si = idx(sx, sy), ni = idx(nx, ny);
 
-    const int si = idx(sx, sy), ni = idx(nx, ny);
+    if (back[ni].m != Material::Empty) return false;
 
-    if (front[ni].m == Material::Empty && back[ni].m == Material::Empty) {
-        back[ni] = c;
-        back[si].m = Material::Empty;
-        // no dirty-marking
-        return true;
-    }
-    return false;
+    back[ni] = c;
+    if (back[si].m == front[si].m) back[si].m = Material::Empty;
+    return true;
 }
 
 inline bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
@@ -82,8 +79,8 @@ void Engine::step() {
                 bool leftFirst = !randbit(x, y, parity);
                 int dxa = leftFirst ? -1 : +1, dxb = -dxa;
 
-                if (inRange(x + dxa, y + 1) && M(x + dxa, y + 1) == Material::Water && trySwap(x, y, dxa, +1, c)) break;
-                if (inRange(x + dxb, y + 1) && M(x + dxb, y + 1) == Material::Water && trySwap(x, y, dxb, +1, c)) break;
+                if (inRange(x + dxa, y + 1) && M(x + dxa, y + 1) == Material::Water && trySwap(x, y, dxa, +1, c)) break;    //intercambiar por agua
+                if (inRange(x + dxb, y + 1) && M(x + dxb, y + 1) == Material::Water && trySwap(x, y, dxb, +1, c)) break;    //intercambiar por agua
 
                 if (tryMove(x, y, dxa, +1, c)) break;
                 if (tryMove(x, y, dxb, +1, c)) break;
@@ -98,12 +95,12 @@ void Engine::step() {
                 int dxa = leftFirst ? -1 : +1, dxb = -dxa;
 
                 // Diagonales
-                if (inRange(x + dxa, y + 1) && M(x + dxa, y + 1) == Material::Empty && tryMove(x, y, dxa, +1, c)) break;
-                if (inRange(x + dxb, y + 1) && M(x + dxb, y + 1) == Material::Empty && tryMove(x, y, dxb, +1, c)) break;
+                if (tryMove(x, y, dxa, +1, c)) break;
+                if (tryMove(x, y, dxb, +1, c)) break;
 
                 // Horizontales
-                if (inRange(x + dxa, y) && M(x + dxa, y) == Material::Empty && tryMove(x, y, dxa, 0, c)) break;
-                if (inRange(x + dxb, y) && M(x + dxb, y) == Material::Empty && tryMove(x, y, dxb, 0, c)) break;
+                if (tryMove(x, y, dxa, 0, c)) break;
+                if (tryMove(x, y, dxb, 0, c)) break;
             } break;
 
             default: break;
