@@ -103,6 +103,64 @@ void Engine::step() {
                 if (tryMove(x, y, dxb, 0, c)) break;
             } break;
 
+            case Material::Stone: {}break;
+
+            case Material::Wood: {
+                bool burn = false;
+                for (int dy = -1; dy <= 1 && !burn; dy++) {
+                    for (int dx = -1; dx <= 1 && !burn; dx++) {
+                        if ((dx != 0 || dy != 0) && inRange(x + dx, y + dy)) {
+                            if (M(x + dx, y + dy) == Material::Fire) {
+                                burn = true;
+                            }
+                        }
+                    }
+                }
+                if (burn) {
+                    back[idx(x, y)].m = Material::Fire;
+                }
+            }break;
+
+            case Material::Fire: {
+
+                if ((rand() % 100) < 5) { 
+                    back[idx(x, y)].m = Material::Empty;
+                    break;
+                }
+
+                if (inRange(x, y - 1) && front[idx(x, y - 1)].m == Material::Empty) {
+                    if ((rand() % 100) < 20) {
+                        back[idx(x, y - 1)].m = Material::Smoke;
+                    }
+                }
+
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        if ((dx != 0 || dy != 0) && inRange(x + dx, y + dy)) {
+                            if (M(x + dx, y + dy) == Material::Wood) {
+                                back[idx(x + dx, y + dy)].m = Material::Fire;
+                            }
+                        }
+                    }
+                }
+            }break;
+
+            case Material::Smoke: {
+                if (tryMove(x, y, 0, -1, c)) break;
+
+
+                bool leftFirst = !randbit(x, y, parity);
+                int dxa = leftFirst ? -1 : +1, dxb = -dxa;
+
+                if (tryMove(x, y, dxa, -1, c)) break;
+                if (tryMove(x, y, dxb, -1, c)) break;
+
+                if ((rand() % 100) < 2) {
+                    back[idx(x, y)].m = Material::Empty;
+                }
+
+            }break;
+
             default: break;
             }
         }
@@ -190,8 +248,9 @@ void Engine::draw() {
     if (pointSize < 1.0f) pointSize = 1.0f;
 
     // posiciones por material (centro celda -> NDC, Y invertida)
-    std::vector<float> sand, water, stone;
-    sand.reserve(w * h / 4); water.reserve(w * h / 4); stone.reserve(w * h / 4);
+    std::vector<float> sand, water, stone, wood, fire, smoke;
+    sand.reserve(w * h / 4); water.reserve(w * h / 4); stone.reserve(w * h / 4); wood.reserve(w * h / 4); fire.reserve(w * h / 4);
+    smoke.reserve(w * h / 4);
     auto push = [&](std::vector<float>& v, int x, int y) {
         float nx = ((x + 0.5f) / float(w)) * 2.f - 1.f;
         float ny = ((y + 0.5f) / float(h)) * 2.f - 1.f;
@@ -204,6 +263,9 @@ void Engine::draw() {
             case Material::Sand:  push(sand, x, y);  break;
             case Material::Water: push(water, x, y); break;
             case Material::Stone: push(stone, x, y); break;
+            case Material::Wood: push(wood, x, y); break;
+            case Material::Fire: push(fire, x, y); break;
+            case Material::Smoke: push(smoke, x, y); break;
             default: break;
             }
         }
@@ -226,4 +288,7 @@ void Engine::draw() {
     drawPoints(stone, 0.50f, 0.50f, 0.55f);
     drawPoints(sand, 0.85f, 0.75f, 0.30f);
     drawPoints(water, 0.20f, 0.40f, 0.90f);
+    drawPoints(wood, 0.55f, 0.33f, 0.21f);
+    drawPoints(fire, 1.0f, 0.13f, 0.0f);
+    drawPoints(smoke, 0.11f, 0.05f, 0.1f);
 }

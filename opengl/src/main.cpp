@@ -29,8 +29,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     case GLFW_KEY_1: brushMat = Material::Sand;  break;
     case GLFW_KEY_2: brushMat = Material::Water; break;
     case GLFW_KEY_3: brushMat = Material::Stone; break;
-    case GLFW_KEY_4: brushMat = Material::Empty; break;
-    case GLFW_KEY_5:
+    case GLFW_KEY_4: brushMat = Material::Wood; break;
+    case GLFW_KEY_5: brushMat = Material::Fire; break;
+    case GLFW_KEY_6: brushMat = Material::Smoke; break;
+    case GLFW_KEY_9: brushMat = Material::Empty; break;
+    case GLFW_KEY_0:
         brushMat = (brushMat == Material::Sand) ? Material::Water :
             (brushMat == Material::Water) ? Material::Stone :
             (brushMat == Material::Stone) ? Material::Empty :
