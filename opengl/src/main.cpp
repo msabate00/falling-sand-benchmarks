@@ -17,6 +17,7 @@ static Renderer* renderer = nullptr;
 
 static bool usePoints = true;
 
+
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT)
         lmbDown = (action == GLFW_PRESS || action == GLFW_REPEAT);
@@ -61,7 +62,7 @@ int main() {
     GLFWwindow* window = glfwCreateWindow(winW, winH, "FallingSand", nullptr, nullptr);
     glfwMakeContextCurrent(window);
 
-    if (gladLoaderLoadGL() == 0) return -1;
+    if (!gladLoadGL(glfwGetProcAddress)) return -1;
     glfwSwapInterval(1);
 
     glfwSetMouseButtonCallback(window, mouse_button_callback);
@@ -72,6 +73,9 @@ int main() {
     renderer = new Renderer();
 
     auto t0 = std::chrono::high_resolution_clock::now();
+    double fpsTimer = 0.0;
+    int frames = 0;
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -91,6 +95,17 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         renderer->draw(engine.frontBuffer(), gridW, gridH, winW, winH);
+
+        frames++;
+        fpsTimer += dt;
+        if (fpsTimer >= 1.0) {
+            double fps = frames / fpsTimer;
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "FallingSand - %.1f FPS", fps);
+            glfwSetWindowTitle(window, buf);
+            fpsTimer = 0.0;
+            frames = 0;
+        }
 
         glfwSwapBuffers(window);
         glfwGetWindowSize(window, &winW, &winH);
