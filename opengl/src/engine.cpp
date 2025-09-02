@@ -8,6 +8,8 @@
 Engine::Engine(int gridW, int gridH) : w(gridW), h(gridH) {
     front.assign(w * h, Cell{ (u8)Material::Empty,0 });
     back.assign(w * h, Cell{ (u8)Material::Empty,0 });
+    clearDirty();
+    markDirtyRect(0, 0, w - 1, h - 1);
     registerDefaultMaterials();
 }
 
@@ -39,6 +41,10 @@ bool Engine::tryMove(int sx, int sy, int dx, int dy, const Cell& c) {
 
     back[ni] = c;
     if (back[si].m == front[si].m) back[si].m = (u8)Material::Empty;
+
+    markDirty(sx, sy);
+    markDirty(nx, ny);
+
     return true;
 }
 
@@ -56,11 +62,17 @@ bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
     back[ni] = c;
     back[si] = dst;
 
+
+    markDirty(sx, sy);
+    markDirty(nx, ny);
+
     return true;
 }
 
 void Engine::setCell(int x, int y, u8 m) {
+    if (!inRange(x, y)) return;
     back[idx(x, y)].m = (u8)m;
+    markDirty(x, y);
 }
 
 void Engine::step() {
@@ -91,4 +103,39 @@ void Engine::paint(int cx, int cy, Material m, int r) {
             int dx = x - cx, dy = y - cy;
             if (dx * dx + dy * dy <= r2) front[idx(x, y)].m = (u8)m;
         }
+
+    markDirtyRect(xmin, ymin, xmax, ymax);
+}
+
+
+// --------------------------- dirty ---------------------------
+void Engine::clearDirty() {
+    dirtyMinX = w; dirtyMinY = h;
+    dirtyMaxX = -1; dirtyMaxY = -1;
+}
+void Engine::markDirty(int x, int y) {
+    if (!inRange(x, y)) return;
+    if (x < dirtyMinX) dirtyMinX = x;
+    if (y < dirtyMinY) dirtyMinY = y;
+    if (x > dirtyMaxX) dirtyMaxX = x;
+    if (y > dirtyMaxY) dirtyMaxY = y;
+}
+void Engine::markDirtyRect(int x0, int y0, int x1, int y1) {
+    x0 = std::max(0, std::min(x0, w - 1));
+    y0 = std::max(0, std::min(y0, h - 1));
+    x1 = std::max(0, std::min(x1, w - 1));
+    y1 = std::max(0, std::min(y1, h - 1));
+    if (x1 < x0 || y1 < y0) return;
+    if (x0 < dirtyMinX) dirtyMinX = x0;
+    if (y0 < dirtyMinY) dirtyMinY = y0;
+    if (x1 > dirtyMaxX) dirtyMaxX = x1;
+    if (y1 > dirtyMaxY) dirtyMaxY = y1;
+}
+bool Engine::takeDirtyRect(int& x, int& y, int& rw, int& rh) {
+    if (dirtyMaxX < dirtyMinX || dirtyMaxY < dirtyMinY) { x = y = rw = rh = 0; return false; }
+    x = dirtyMinX; y = dirtyMinY;
+    rw = dirtyMaxX - dirtyMinX + 1;
+    rh = dirtyMaxY - dirtyMinY + 1;
+    clearDirty();
+    return true;
 }

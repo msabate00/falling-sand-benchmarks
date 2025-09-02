@@ -94,7 +94,11 @@ int main() {
         glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        renderer->draw(engine.frontBuffer(), gridW, gridH, winW, winH);
+        int rx = 0, ry = 0, rw = 0, rh = 0;
+        bool hasDirty = engine.takeDirtyRect(rx, ry, rw, rh);
+        if (!hasDirty) { rw = rh = 0; }
+
+        renderer->draw(engine.frontBuffer(), gridW, gridH, winW, winH, rx, ry, rw, rh);
 
         frames++;
         fpsTimer += dt;

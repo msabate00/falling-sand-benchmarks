@@ -35,6 +35,7 @@ public:
 
     void setCell(int x, int y, u8 m);
 
+    bool takeDirtyRect(int& x, int& y, int& rw, int& rh);
 
     bool stepOnce = false;
     bool paused = false;
@@ -49,5 +50,10 @@ private:
 
     void step();
     void swapBuffers() { front.swap(back); }
+
+    int dirtyMinX, dirtyMinY, dirtyMaxX, dirtyMaxY;
+    void clearDirty();
+    void markDirty(int x, int y);
+    void markDirtyRect(int x0, int y0, int x1, int y1);
 
 };
