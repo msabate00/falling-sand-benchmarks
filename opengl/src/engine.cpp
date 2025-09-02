@@ -9,39 +9,6 @@
 Engine::Engine(int gridW, int gridH) : w(gridW), h(gridH) {
     front.assign(w * h, Cell{ Material::Empty,0 });
     back.assign(w * h, Cell{ Material::Empty,0 });
-
-    tw = (w + TILE - 1) / TILE;
-    th = (h + TILE - 1) / TILE;
-    dirty.assign(tw * th, 1);            // todo sucio el primer frame
-    nextDirty.assign(tw * th, 0);
-}
-
-// ----------------------- dirty helpers ------------------------
-void Engine::markDirtyTile(int tx, int ty) {
-    if (tx < 0 || tx >= tw || ty < 0 || ty >= th) return;
-    nextDirty[tidx(tx, ty)] = 1;
-}
-void Engine::markDirtyRect(int x0, int y0, int x1, int y1) {
-    x0 = std::max(0, std::min(x0, w - 1));
-    y0 = std::max(0, std::min(y0, h - 1));
-    x1 = std::max(0, std::min(x1, w - 1));
-    y1 = std::max(0, std::min(y1, h - 1));
-    int tx0 = x0 / TILE, ty0 = y0 / TILE;
-    int tx1 = x1 / TILE, ty1 = y1 / TILE;
-    for (int ty = ty0; ty <= ty1; ++ty)
-        for (int tx = tx0; tx <= tx1; ++tx)
-            markDirtyTile(tx, ty);
-    // margen de propagación a tiles vecinos
-    for (int ty = ty0 - 1; ty <= ty1 + 1; ++ty) { markDirtyTile(tx0 - 1, ty); markDirtyTile(tx1 + 1, ty); }
-    for (int tx = tx0 - 1; tx <= tx1 + 1; ++tx) { markDirtyTile(tx, ty0 - 1); markDirtyTile(tx, ty1 + 1); }
-}
-void Engine::collectDirty() {
-    dirtyList.clear();
-    for (int t = 0; t < tw * th; ++t) {
-        if (dirty[t] || nextDirty[t]) { dirtyList.push_back(t); dirty[t] = 0; }
-    }
-    std::fill(nextDirty.begin(), nextDirty.end(), 0);
-    if (dirtyList.empty()) for (int t = 0; t < tw * th; ++t) dirtyList.push_back(t);
 }
 
 // ---------------------------- sim -----------------------------
@@ -49,7 +16,6 @@ void Engine::update(float dt) {
     accumulator += dt;
     while (accumulator >= fixedStep && (!paused || stepOnce)) {
         back = front;
-        collectDirty();
 
         step();
 
@@ -61,7 +27,6 @@ void Engine::update(float dt) {
             stepOnce = false;
             break;
         }
-
     }
 }
 
@@ -71,19 +36,14 @@ inline bool Engine::tryMove(int sx, int sy, int dx, int dy, const Cell& c) {
 
     const int si = idx(sx, sy), ni = idx(nx, ny);
 
-
     if (front[ni].m == Material::Empty && back[ni].m == Material::Empty) {
-        back[ni] = c; 
+        back[ni] = c;
         back[si].m = Material::Empty;
-        front[si].m = Material::Empty;
-        int minx = std::min(sx, nx) - 1, maxx = std::max(sx, nx) + 1;
-        int miny = std::min(sy, ny) - 1, maxy = std::max(sy, ny) + 1;
-        markDirtyRect(minx, miny, maxx, maxy);
+        // no dirty-marking
         return true;
     }
     return false;
 }
-
 
 inline bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
     int nx = sx + dx;
@@ -92,82 +52,61 @@ inline bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
 
     int si = idx(sx, sy);
     int ni = idx(nx, ny);
-
     if (si == ni) return false;
 
     const Cell& dst = front[ni];
 
-    
-
     back[ni] = c;
     back[si] = dst;
-
-    int minx = std::min(sx, nx) - 1, maxx = std::max(sx, nx) + 1;
-    int miny = std::min(sy, ny) - 1, maxy = std::max(sy, ny) + 1;
-
-    markDirtyRect(minx, miny, maxx, maxy);
+    // no dirty-marking
     return true;
-    
 }
 
 void Engine::step() {
     auto M = [&](int x, int y) { return front[idx(x, y)].m; };
 
-    for (int t : dirtyList) {
-        int tx = t % tw, ty = t / tw;
-        int xBegin = tx * TILE;
-        int yBegin = ty * TILE;
-        int xEnd = std::min(xBegin + TILE, w);
-        int yEnd = std::min(yBegin + TILE, h);
+    for (int y = h - 1; y >= 0; --y) {
+        bool l2r = ((y ^ parity) & 1);
+        int x0 = l2r ? 0 : (w - 1);
+        int x1 = l2r ? w : -1;
+        int s = l2r ? 1 : -1;
 
-        for (int y = yEnd - 1; y >= yBegin; --y) {           // incluye última fila del tile
-            bool l2r = ((y ^ parity) & 1);
-            int x0 = l2r ? xBegin : (xEnd - 1);
-            int x1 = l2r ? xEnd : (xBegin - 1);
-            int s = l2r ? 1 : -1;
+        for (int x = x0; x != x1; x += s) {
+            const Cell c = front[idx(x, y)];
+            switch (c.m) {
+            case Material::Sand: {
+                if (tryMove(x, y, 0, +1, c)) break; // caer
 
-            for (int x = x0; x != x1; x += s) {
-                const Cell c = front[idx(x, y)];
-                switch (c.m) {
-                case Material::Sand: {
-                    if (tryMove(x, y, 0, +1, c)) break;                // caer
+                if (inRange(x, y + 1) && M(x, y + 1) == Material::Water && trySwap(x, y, 0, +1, c)) break; // intercambiar por agua
 
-                    if (inRange(x,y+1) && M(x, y + 1) == Material::Water && trySwap(x, y, 0, +1, c)) break; //Intercambiar por agua
+                bool leftFirst = !randbit(x, y, parity);
+                int dxa = leftFirst ? -1 : +1, dxb = -dxa;
 
-                    bool leftFirst = !randbit(x, y, parity);   // rampas
-                    int dxa = leftFirst ? -1 : +1, dxb = -dxa;
+                if (inRange(x + dxa, y + 1) && M(x + dxa, y + 1) == Material::Water && trySwap(x, y, dxa, +1, c)) break;
+                if (inRange(x + dxb, y + 1) && M(x + dxb, y + 1) == Material::Water && trySwap(x, y, dxb, +1, c)) break;
 
-                    if (inRange(x+ dxa, y + 1) && M(x+ dxa, y + 1) == Material::Water && trySwap(x, y, dxa, +1, c)) break;
-                    if (inRange(x+ dxb, y + 1) && M(x+ dxb, y + 1) == Material::Water && trySwap(x, y, dxb, +1, c)) break;
+                if (tryMove(x, y, dxa, +1, c)) break;
+                if (tryMove(x, y, dxb, +1, c)) break;
+            } break;
 
+            case Material::Water: {
+                if (!inRange(x, y)) break;
 
-                    if (tryMove(x, y, dxa, +1, c)) break;
-                    if (tryMove(x, y, dxb, +1, c)) break;
+                if (tryMove(x, y, 0, +1, c)) break;
 
-                } break;
+                bool leftFirst = !randbit(x, y, parity);
+                int dxa = leftFirst ? -1 : +1, dxb = -dxa;
 
-                case Material::Water: {
-                    
-                    if (!inRange(x, y)) break;
+                // Diagonales
+                if (inRange(x + dxa, y + 1) && M(x + dxa, y + 1) == Material::Empty && tryMove(x, y, dxa, +1, c)) break;
+                if (inRange(x + dxb, y + 1) && M(x + dxb, y + 1) == Material::Empty && tryMove(x, y, dxb, +1, c)) break;
 
-                    if (tryMove(x, y, 0, +1, c)) break;
+                // Horizontales
+                if (inRange(x + dxa, y) && M(x + dxa, y) == Material::Empty && tryMove(x, y, dxa, 0, c)) break;
+                if (inRange(x + dxb, y) && M(x + dxb, y) == Material::Empty && tryMove(x, y, dxb, 0, c)) break;
+            } break;
 
-                    bool leftFirst = !randbit(x, y, parity);
-                    int dxa = leftFirst ? -1 : +1, dxb = -dxa;
-
-                    //Diagonales
-                    if (inRange(x + dxa, y + 1) && M(x + dxa, y + 1) == Material::Empty  && tryMove(x, y, dxa, +1, c)) break;
-                    if (inRange(x + dxb, y + 1) && M(x + dxb, y + 1) == Material::Empty  && tryMove(x, y, dxb, +1, c)) break;
-
-                    //Horizontales
-                    if (inRange(x + dxa, y) && M(x + dxa, y) == Material::Empty && tryMove(x, y, dxa, 0, c)) break;
-                    if (inRange(x + dxb, y) && M(x + dxb, y) == Material::Empty && tryMove(x, y, dxb, 0, c)) break;
-
-
-                } break;
-
-                default: break;
-                }
+            default: break;
             }
         }
     }
@@ -183,7 +122,7 @@ void Engine::paint(int cx, int cy, Material m, int r) {
             int dx = x - cx, dy = y - cy;
             if (dx * dx + dy * dy <= r2) front[idx(x, y)].m = m;
         }
-    markDirtyRect(xmin, ymin, xmax, ymax);
+    // no dirty-marking
 }
 
 // --------------------------- draw() ---------------------------
