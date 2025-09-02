@@ -27,6 +27,7 @@ add_executable(FallingSand
   src/engine.cpp
   src/material.cpp
   src/renderer.cpp
+  src/utils.cpp
 )
 target_include_directories(FallingSand PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -39,6 +40,16 @@ target_link_libraries(FallingSand PRIVATE
   OpenGL::GL
 )
 
-# === (Opcional) Rutas de shaders/assets ===
-set(SHADERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-add_definitions(-DSHADERS_DIR="${SHADERS_DIR}")
+target_compile_definitions(FallingSand PRIVATE
+  SHADER_DIR="${CMAKE_SOURCE_DIR}/assets/shaders"
+)
+
+add_custom_command(TARGET FallingSand POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          "${CMAKE_SOURCE_DIR}/assets"
+          "$<TARGET_FILE_DIR:FallingSand>/assets"
+)
+
+set_target_properties(FallingSand PROPERTIES
+  VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)

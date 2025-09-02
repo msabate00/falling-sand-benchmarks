@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "utils.h"
 #include <glad/gl.h>
 #include <cmath>
 
@@ -26,44 +27,10 @@ Renderer::~Renderer() {
 void Renderer::ensureGL() { if (!prog) initOnce(); }
 
 void Renderer::initOnce() {
-    const char* vs = R"(#version 330 core
-                        const vec2 V[3]=vec2[3](vec2(-1,-1),vec2(3,-1),vec2(-1,3));
-                        out vec2 uv;
-                        void main(){
-                            gl_Position=vec4(V[gl_VertexID],0,1);
-                            uv = gl_Position.xy*0.5 + 0.5;
-                        })";
+    std::string vsSrc = readTextFile(SHADER_DIR "/grid.vs.glsl");
+    std::string fsSrc = readTextFile(SHADER_DIR "/grid.fs.glsl");
 
-    const char* fs = R"(#version 330 core
-                        in vec2 uv;
-                        out vec4 o;
-                        uniform usampler2D uTex; // índices
-                        uniform vec2 uGrid;      // (w,h)
-                        uniform vec2 uView;      // viewport px
-
-                        layout(std140) uniform Palette { vec4 colors[256]; };
-
-                        void main(){
-                            // escalado entero con letterbox
-                            vec2 scale = floor(uView / uGrid);
-                            float s = max(1.0, min(scale.x, scale.y));
-                            vec2 size = uGrid * s;
-                            vec2 off  = (uView - size) * 0.5;
-
-                            vec2 frag = gl_FragCoord.xy - off;
-                            if (any(lessThan(frag, vec2(0))) || any(greaterThanEqual(frag, size)))
-                                discard;
-
-                            vec2 uv2 = frag / size;
-                            uint m = texture(uTex, vec2(uv2.x, 1.0 - uv2.y)).r;
-
-                            if (m==0u) discard;                // Empty
-                            vec4 c = colors[int(m)];           // RGBA desde UBO
-                            if (c.a <= 0.0) discard;
-                            o = c;
-                        })";
-
-    prog = makeProgram(vs, fs);
+    prog = makeProgram(vsSrc.c_str(), fsSrc.c_str());
 
     glGenVertexArrays(1, &vao);
     glGenTextures(1, &tex);
