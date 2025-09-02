@@ -47,30 +47,67 @@ void Engine::collectDirty() {
 // ---------------------------- sim -----------------------------
 void Engine::update(float dt) {
     accumulator += dt;
-    while (accumulator >= fixedStep) {
+    while (accumulator >= fixedStep && (!paused || stepOnce)) {
         back = front;
         collectDirty();
+
         step();
+
         swapBuffers();
         accumulator -= fixedStep;
         parity ^= 1;
+
+        if (paused) {
+            stepOnce = false;
+            break;
+        }
+
     }
 }
 
 inline bool Engine::tryMove(int sx, int sy, int dx, int dy, const Cell& c) {
     int nx = sx + dx, ny = sy + dy;
-    if (!inRange(nx, ny, w, h)) return false;
-    if (isBorder(nx, ny))      return false; // paredes invisibles en el marco
+    if (!inRange(nx, ny)) return false;
 
-    int si = idx(sx, sy), ni = idx(nx, ny);
-    if (front[ni].m == Material::Empty) {
-        back[ni] = c; back[si].m = Material::Empty;
+    const int si = idx(sx, sy), ni = idx(nx, ny);
+
+
+    if (front[ni].m == Material::Empty && back[ni].m == Material::Empty) {
+        back[ni] = c; 
+        back[si].m = Material::Empty;
+        front[si].m = Material::Empty;
         int minx = std::min(sx, nx) - 1, maxx = std::max(sx, nx) + 1;
         int miny = std::min(sy, ny) - 1, maxy = std::max(sy, ny) + 1;
         markDirtyRect(minx, miny, maxx, maxy);
         return true;
     }
     return false;
+}
+
+
+inline bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
+    int nx = sx + dx;
+    int ny = sy + dy;
+    if (!inRange(nx, ny, w, h)) return false;
+
+    int si = idx(sx, sy);
+    int ni = idx(nx, ny);
+
+    if (si == ni) return false;
+
+    const Cell& dst = front[ni];
+
+    
+
+    back[ni] = c;
+    back[si] = dst;
+
+    int minx = std::min(sx, nx) - 1, maxx = std::max(sx, nx) + 1;
+    int miny = std::min(sy, ny) - 1, maxy = std::max(sy, ny) + 1;
+
+    markDirtyRect(minx, miny, maxx, maxy);
+    return true;
+    
 }
 
 void Engine::step() {
@@ -94,20 +131,39 @@ void Engine::step() {
                 switch (c.m) {
                 case Material::Sand: {
                     if (tryMove(x, y, 0, +1, c)) break;                // caer
-                    bool leftFirst = ((x + y + parity) & 1) == 0;   // rampas
+
+                    if (inRange(x,y+1) && M(x, y + 1) == Material::Water && trySwap(x, y, 0, +1, c)) break; //Intercambiar por agua
+
+                    bool leftFirst = !randbit(x, y, parity);   // rampas
                     int dxa = leftFirst ? -1 : +1, dxb = -dxa;
+
+                    if (inRange(x+ dxa, y + 1) && M(x+ dxa, y + 1) == Material::Water && trySwap(x, y, dxa, +1, c)) break;
+                    if (inRange(x+ dxb, y + 1) && M(x+ dxb, y + 1) == Material::Water && trySwap(x, y, dxb, +1, c)) break;
+
+
                     if (tryMove(x, y, dxa, +1, c)) break;
                     if (tryMove(x, y, dxb, +1, c)) break;
+
                 } break;
 
                 case Material::Water: {
-                    // Igual a tu versión de Python: abajo, si no puede -> 1 paso lateral
+                    
+                    if (!inRange(x, y)) break;
+
                     if (tryMove(x, y, 0, +1, c)) break;
-                    // apilar: si debajo hay agua, no te vayas lateral
-                    if (y + 1 < h && M(x, y + 1) == Material::Water) break;
-                    int dir = ((x + y + parity) & 1) ? -1 : +1;
-                    if (tryMove(x, y, dir, 0, c)) break;
-                    if (tryMove(x, y, -dir, 0, c)) break;
+
+                    bool leftFirst = !randbit(x, y, parity);
+                    int dxa = leftFirst ? -1 : +1, dxb = -dxa;
+
+                    //Diagonales
+                    if (inRange(x + dxa, y + 1) && M(x + dxa, y + 1) == Material::Empty  && tryMove(x, y, dxa, +1, c)) break;
+                    if (inRange(x + dxb, y + 1) && M(x + dxb, y + 1) == Material::Empty  && tryMove(x, y, dxb, +1, c)) break;
+
+                    //Horizontales
+                    if (inRange(x + dxa, y) && M(x + dxa, y) == Material::Empty && tryMove(x, y, dxa, 0, c)) break;
+                    if (inRange(x + dxb, y) && M(x + dxb, y) == Material::Empty && tryMove(x, y, dxb, 0, c)) break;
+
+
                 } break;
 
                 default: break;

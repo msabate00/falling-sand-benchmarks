@@ -9,11 +9,20 @@ static int gridW = 320, gridH = 180;
 
 static bool lmbDown = false;
 static Material brushMat = Material::Sand;
+static int brushSize = 4;
+
+static Engine engine = Engine(gridW, gridH);
 
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT)
         lmbDown = (action == GLFW_PRESS || action == GLFW_REPEAT);
 }
+
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    brushSize += (int)yoffset;
+    if (brushSize < 1) brushSize = 1;
+}
+
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action != GLFW_PRESS) return;
     switch (key) {
@@ -27,6 +36,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             (brushMat == Material::Stone) ? Material::Empty :
             Material::Sand;
         break;
+
+
+    case GLFW_KEY_P: engine.paused = !engine.paused; break;
+    case GLFW_KEY_N: engine.stepOnce = true; break;
+
     default: break;
     }
 }
@@ -42,9 +56,10 @@ int main() {
     glfwSwapInterval(1);
 
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
 
-    Engine engine(gridW, gridH);
+    engine = Engine(gridW, gridH);
 
     auto t0 = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
@@ -57,7 +72,7 @@ int main() {
         double mx, my; glfwGetCursorPos(window, &mx, &my);
         int gx = int((mx / double(winW)) * gridW);
         int gy = int((my / double(winH)) * gridH);
-        if (lmbDown) engine.paint(gx, gy, brushMat, 4);
+        if (lmbDown) engine.paint(gx, gy, brushMat, brushSize);
 
         engine.update(dt);
 
