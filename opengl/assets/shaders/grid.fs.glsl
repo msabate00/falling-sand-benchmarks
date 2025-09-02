@@ -5,7 +5,7 @@ out vec4 o;
 uniform usampler2D uTex;   // índices R8UI
 uniform vec2 uGrid;        // (w,h)
 uniform vec2 uView;        // viewport px
-layout(std140) uniform Palette { vec4 colors[256]; };
+layout(std140) uniform Palette { vec4 colors[256]; vec4 extra[256]; };
 
 // hash determinista por celda
 float hash2(ivec2 p){
@@ -35,7 +35,7 @@ void main(){
   // -------- variacion de color por celda --------
   ivec2 cellId = ivec2(clamp(floor(uv2 * uGrid), vec2(0), uGrid - 1.0));
   float n = hash2(cellId)*2.0 - 1.0;  // [-1,1]
-  float k = 0.15;                     // intensidad (6%)
+  float k = 0.15;                     // intensidad
   c.rgb = clamp(c.rgb * (1.0 + k*n), 0.0, 1.0);
   // ----------------------------------------------
 
@@ -43,12 +43,16 @@ void main(){
   vec2 p = cell - vec2(0.5);        
   float r = length(p);
 
+  // emisivo por material (extra[i].x)
+  float emis = extra[int(m)].x;
+
    // --------- Parametros de los puntos ----------
   float radius  = 0.35;
   float feather = 0.30;
   // ----------------------------------------------
 
   float alpha = 1.0 - smoothstep(radius, radius + feather, r);
-  o = vec4(c.rgb, c.a * alpha);
+  vec3 rgb = c.rgb * emis;
+  o = vec4(rgb, c.a * alpha);
   if (o.a <= 0.001) discard;
 }

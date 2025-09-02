@@ -94,12 +94,12 @@ static void StoneUpdate(Engine&, int, int, const Cell&) { /* inmóvil */ }
 
 void registerDefaultMaterials() {
 
-    //MatProp                           //NAME      //Color             //Densidad
-    g_mat[(u8)Material::Empty] =    {   "Empty",    0,0,0,0,           0,      nullptr };
-    g_mat[(u8)Material::Sand] =     {   "Sand",     217,191,77,255,    3,      &SandUpdate };
-    g_mat[(u8)Material::Water] =    {   "Water",    51,102,230,200,    1,      &WaterUpdate };
-    g_mat[(u8)Material::Stone] =    {   "Stone",    128,128,140,255,   255,    &StoneUpdate };
-    g_mat[(u8)Material::Wood] =     {   "Wood",     142,86,55,255,     255,    &WoodUpdate };
-    g_mat[(u8)Material::Fire] =     {   "Fire",     255,35,1,255,      255,    &FireUpdate };
-    g_mat[(u8)Material::Smoke] =    {   "Smoke",    28,13,2,255,       255,    &SmokeUpdate };
+    //MatProp                           //NAME      //Color             //Densidad  //Emissive
+    g_mat[(u8)Material::Empty] =    {   "Empty",    0,0,0,0,           0,           1.0f,       nullptr };
+    g_mat[(u8)Material::Sand] =     {   "Sand",     217,191,77,255,    3,           1.0f,       &SandUpdate };
+    g_mat[(u8)Material::Water] =    {   "Water",    51,102,230,200,    1,           1.0f,       &WaterUpdate };
+    g_mat[(u8)Material::Stone] =    {   "Stone",    128,128,140,255,   255,         1.0f,       &StoneUpdate };
+    g_mat[(u8)Material::Wood] =     {   "Wood",     142,86,55,255,     255,         1.0f,       &WoodUpdate };
+    g_mat[(u8)Material::Fire] =     {   "Fire",     255,35,1,255,      255,         5.5f,       &FireUpdate };
+    g_mat[(u8)Material::Smoke] =    {   "Smoke",    28,13,2,255,       255,         1.0f,       &SmokeUpdate };
 }

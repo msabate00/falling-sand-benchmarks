@@ -20,6 +20,7 @@ struct MatProps {
 
     u8 r = 0, g = 0, b = 0, a = 255;
     u8 density = 1;
+    float emissive = 1.0f; 
 
     void (*update)(Engine&, int x, int y, const Cell& self) = nullptr;
 };

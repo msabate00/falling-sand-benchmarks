@@ -15,41 +15,24 @@ static int brushSize = 4;
 static Engine engine = Engine(gridW, gridH);
 static Renderer* renderer = nullptr;
 
-static bool usePoints = true;
-
-
-static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT)
-        lmbDown = (action == GLFW_PRESS || action == GLFW_REPEAT);
+static void mouse_button_callback(GLFWwindow* w, int b, int a, int m) {
+    if (b == GLFW_MOUSE_BUTTON_LEFT) lmbDown = (a != GLFW_RELEASE);
 }
-
-static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    brushSize += (int)yoffset;
-    if (brushSize < 1) brushSize = 1;
+static void scroll_callback(GLFWwindow*, double, double yoff) {
+    brushSize += (int)yoff; if (brushSize < 1) brushSize = 1;
 }
-
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static void key_callback(GLFWwindow*, int key, int, int action, int) {
     if (action != GLFW_PRESS) return;
     switch (key) {
     case GLFW_KEY_1: brushMat = Material::Sand;  break;
     case GLFW_KEY_2: brushMat = Material::Water; break;
     case GLFW_KEY_3: brushMat = Material::Stone; break;
-    case GLFW_KEY_4: brushMat = Material::Wood; break;
-    case GLFW_KEY_5: brushMat = Material::Fire; break;
+    case GLFW_KEY_4: brushMat = Material::Wood;  break;
+    case GLFW_KEY_5: brushMat = Material::Fire;  break;
     case GLFW_KEY_6: brushMat = Material::Smoke; break;
     case GLFW_KEY_9: brushMat = Material::Empty; break;
-    case GLFW_KEY_0:
-        brushMat = (brushMat == Material::Sand) ? Material::Water :
-            (brushMat == Material::Water) ? Material::Stone :
-            (brushMat == Material::Stone) ? Material::Empty :
-            Material::Sand;
-        break;
-
-
     case GLFW_KEY_P: engine.paused = !engine.paused; break;
     case GLFW_KEY_N: engine.stepOnce = true; break;
-    case GLFW_KEY_R: usePoints = !usePoints; break;
-
     default: break;
     }
 }
@@ -98,7 +81,7 @@ int main() {
         bool hasDirty = engine.takeDirtyRect(rx, ry, rw, rh);
         if (!hasDirty) { rw = rh = 0; }
 
-        renderer->draw(engine.frontBuffer(), gridW, gridH, winW, winH, rx, ry, rw, rh);
+        renderer->drawPlane(engine.planeM(), gridW, gridH, winW, winH, rx, ry, rw, rh);
 
         frames++;
         fpsTimer += dt;
@@ -114,7 +97,5 @@ int main() {
         glfwSwapBuffers(window);
         glfwGetWindowSize(window, &winW, &winH);
     }
-    glfwDestroyWindow(window);
-    glfwTerminate();
     return 0;
 }
