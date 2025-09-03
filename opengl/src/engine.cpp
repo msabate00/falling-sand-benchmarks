@@ -119,9 +119,16 @@ bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
 void Engine::setCell(int x, int y, u8 m) {
     if (!inRange(x, y)) return;
     int i = idx(x, y);
+    u8 prev = back[i].m;
+    if (prev == m) return;
+
     back[i].m = m;
     mBack[i] = m;
     markDirty(x, y);
+
+    if (m == (u8)Material::Fire && prev != (u8)Material::Fire) {
+        audioEvents.push_back({ AudioEvent::Type::Ignite, x, y });
+    }
 }
 
 void Engine::step() {
@@ -157,4 +164,5 @@ void Engine::paint(int cx, int cy, Material m, int r) {
             }
         }
     markDirtyRect(xmin, ymin, xmax, ymax);
+    audioEvents.push_back({ AudioEvent::Type::Paint, cx, cy });
 }

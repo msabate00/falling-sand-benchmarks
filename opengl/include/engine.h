@@ -3,6 +3,15 @@
 #include <cstdint>
 #include "material.h"
 
+
+
+struct AudioEvent {
+    enum class Type : std::uint8_t { Ignite, Paint };
+    Type type;
+    int x, y;  
+};
+
+
 class Engine {
 public:
     Engine(int gridW, int gridH);
@@ -17,6 +26,12 @@ public:
 
     // Dirty-rect: true si hay cambios (rellena x,y,rw,rh)
     bool takeDirtyRect(int& x, int& y, int& rw, int& rh);
+
+    bool takeAudioEvents(std::vector<AudioEvent>& out) {
+        if (audioEvents.empty()) return false;
+        out.swap(audioEvents);
+        return true;
+    }
 
     // util
     int idx(int x, int y) const { return y * w + x; }
@@ -53,7 +68,9 @@ private:
 
     // Dirty tracking
     int dirtyMinX, dirtyMinY, dirtyMaxX, dirtyMaxY;
-    void clearDirty();
+    void clearDirty(); 
     void markDirty(int x, int y);
     void markDirtyRect(int x0, int y0, int x1, int y1);
+
+    std::vector<AudioEvent> audioEvents;
 };

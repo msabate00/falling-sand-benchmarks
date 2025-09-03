@@ -29,6 +29,7 @@ add_executable(FallingSand
   src/renderer.cpp
   src/utils.cpp
   src/ui.cpp
+  src/audio.cpp
 )
 target_include_directories(FallingSand PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -43,6 +44,7 @@ target_link_libraries(FallingSand PRIVATE
 
 target_compile_definitions(FallingSand PRIVATE
   SHADER_DIR="${CMAKE_SOURCE_DIR}/assets/shaders"
+  AUDIO_DIR="${CMAKE_SOURCE_DIR}/assets/audios"
 )
 
 add_custom_command(TARGET FallingSand POST_BUILD
