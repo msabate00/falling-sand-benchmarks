@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "material.h"
 #include "renderer.h"
+#include "ui.h"
 
 static int winW = 1280, winH = 720;
 static int gridW = 320, gridH = 180;
@@ -14,6 +15,7 @@ static int brushSize = 4;
 
 static Engine engine = Engine(gridW, gridH);
 static Renderer* renderer = nullptr;
+static UI ui;
 
 static void mouse_button_callback(GLFWwindow* w, int b, int a, int m) {
     if (b == GLFW_MOUSE_BUTTON_LEFT) lmbDown = (a != GLFW_RELEASE);
@@ -55,6 +57,8 @@ int main() {
     engine = Engine(gridW, gridH);
     renderer = new Renderer();
 
+    ui.init();
+
     auto t0 = std::chrono::high_resolution_clock::now();
     double fpsTimer = 0.0;
     int frames = 0;
@@ -69,19 +73,23 @@ int main() {
         double mx, my; glfwGetCursorPos(window, &mx, &my);
         int gx = int((mx / double(winW)) * gridW);
         int gy = int((my / double(winH)) * gridH);
-        if (lmbDown) engine.paint(gx, gy, brushMat, brushSize);
+        ui.setMouse(mx, my, lmbDown);
 
         engine.update(dt);
-
-        glViewport(0, 0, winW, winH);
-        glClearColor(0.05f, 0.05f, 0.08f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
 
         int rx = 0, ry = 0, rw = 0, rh = 0;
         bool hasDirty = engine.takeDirtyRect(rx, ry, rw, rh);
         if (!hasDirty) { rw = rh = 0; }
 
         renderer->drawPlane(engine.planeM(), gridW, gridH, winW, winH, rx, ry, rw, rh);
+
+        ui.begin(winW, winH);
+        
+        ui.draw(engine, brushSize, brushMat);
+
+        ui.end();
+
+        if (lmbDown && !ui.consumedMouse()) engine.paint(gx, gy, brushMat, brushSize);
 
         frames++;
         fpsTimer += dt;
@@ -97,5 +105,7 @@ int main() {
         glfwSwapBuffers(window);
         glfwGetWindowSize(window, &winW, &winH);
     }
+    ui.shutdown();
+
     return 0;
 }

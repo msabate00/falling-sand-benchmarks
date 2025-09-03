@@ -28,6 +28,7 @@ add_executable(FallingSand
   src/material.cpp
   src/renderer.cpp
   src/utils.cpp
+  src/ui.cpp
 )
 target_include_directories(FallingSand PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include

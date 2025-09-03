@@ -73,6 +73,8 @@ void Engine::update(float dt) {
 
         if (paused) { stepOnce = false; break; }
     }
+
+    if (paused) accumulator = 0;
 }
 
 bool Engine::tryMove(int sx, int sy, int dx, int dy, const Cell& c) {

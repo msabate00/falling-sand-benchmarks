@@ -13,7 +13,6 @@ public:
     int width()  const { return w; }
     int height() const { return h; }
 
-    // SoA: plano de materiales (frontal) para el renderer
     const std::uint8_t* planeM() const { return mFront.data(); }
 
     // Dirty-rect: true si hay cambios (rellena x,y,rw,rh)
@@ -38,10 +37,9 @@ public:
     bool paused = false;
 
 private:
-    // Grid + doble buffer
+
     int w, h;
     std::vector<Cell> front, back;
-    // SoA: solo ids de material (doble buffer)
     std::vector<u8> mFront, mBack;
 
     // Timestep fijo
