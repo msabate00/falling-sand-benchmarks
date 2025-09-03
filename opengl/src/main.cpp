@@ -60,9 +60,6 @@ int main() {
     renderer = new Renderer();
 
     audio.init();
-    audio.load("ignite", AUDIO_DIR  "/ignite.wav", 16);
-    audio.load("paint", AUDIO_DIR  "/paint.wav", 8);
-
     ui.init();
 
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -82,17 +79,8 @@ int main() {
         ui.setMouse(mx, my, lmbDown);
 
         engine.update(dt);
-        std::vector<AudioEvent> evs;
-        if (engine.takeAudioEvents(evs)) {
-            for (const auto& e : evs) {
-                float x01 = float(e.x) / float(gridW);
-                float y01 = float(e.y) / float(gridH);
-                switch (e.type) {
-                case AudioEvent::Type::Ignite: audio.play("ignite", x01, y01, 0.9f); break;
-                case AudioEvent::Type::Paint:  audio.play("paint", x01, y01, 0.5f); break;
-                }
-            }
-        }
+        
+        audio.update(engine);
 
         int rx = 0, ry = 0, rw = 0, rh = 0;
         bool hasDirty = engine.takeDirtyRect(rx, ry, rw, rh);

@@ -1,11 +1,21 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "audio.h"
+#include "engine.h"
 #include <cmath>
 
 bool Audio::init() {
     if (ready) return true;
     ready = (ma_engine_init(NULL, &eng) == MA_SUCCESS);
+
+    loadAudios();
+
     return ready;
+}
+
+void Audio::loadAudios() {
+
+    load("ignite", AUDIO_DIR  "/ignite.wav", 16);
+    load("paint", AUDIO_DIR  "/paint.wav", 1);
 }
 
 void Audio::shutdown() {
@@ -16,6 +26,21 @@ void Audio::shutdown() {
     }
     sfx.clear();
     if (ready) { ma_engine_uninit(&eng); ready = false; }
+}
+
+void Audio::update(Engine& E) {
+    std::vector<AudioEvent> evs;
+    if (E.takeAudioEvents(evs)) {
+        for (const auto& e : evs) {
+
+            float x01 = float(e.x) / float(E.width());
+            float y01 = float(e.y) / float(E.height());
+            switch (e.type) {
+            case AudioEvent::Type::Ignite: play("ignite", x01, y01, 0.9f); break;
+            case AudioEvent::Type::Paint:  play("paint", x01, y01, 0.5f); break;
+            }
+        }
+    }
 }
 
 bool Audio::load(const std::string& key, const char* path, int voices) {
