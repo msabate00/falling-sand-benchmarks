@@ -42,7 +42,6 @@ Renderer::~Renderer() {
 void Renderer::ensureGL() { if (!progGrid) initOnce(); }
 
 void Renderer::initOnce() {
-    // --- Grid program (índices + paleta UBO + discos) ---
     std::string vsSrc = readTextFile(SHADER_DIR "/grid.vs.glsl");
     std::string fsSrc = readTextFile(SHADER_DIR "/grid.fs.glsl");
     progGrid = makeProgram(vsSrc.c_str(), fsSrc.c_str());
@@ -114,7 +113,7 @@ void Renderer::ensureSceneTargets(int viewW, int viewH) {
     if (viewW <= 0 || viewH <= 0) return;
     if (fboW == viewW && fboH == viewH && sceneFBO) return;
 
-    // Destroy previous
+
     if (sceneTex) { glDeleteTextures(1, &sceneTex); sceneTex = 0; }
     if (pingTex[0]) { glDeleteTextures(1, &pingTex[0]); pingTex[0] = 0; }
     if (pingTex[1]) { glDeleteTextures(1, &pingTex[1]); pingTex[1] = 0; }
@@ -207,10 +206,10 @@ void Renderer::drawGrid(const std::vector<uint8_t>& indices, int w, int h, int v
 
     ensureSceneTargets(viewW, viewH);
 
-    // 1) Grid → HDR scene
+    //Grid → HDR scene
     glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
     glViewport(0, 0, viewW, viewH);
-    glClearColor(0.00f, 0.00f, 0.00f, 1.0f);
+    glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(progGrid);
@@ -221,7 +220,7 @@ void Renderer::drawGrid(const std::vector<uint8_t>& indices, int w, int h, int v
     glUniform2f(loc_uView, float(viewW), float(viewH));
     drawFullscreen();
 
-    // 2) Bloom: threshold → blur ping-pong
+    //Bloom
     glDisable(GL_BLEND);
 
     glUseProgram(progThresh);
@@ -233,6 +232,7 @@ void Renderer::drawGrid(const std::vector<uint8_t>& indices, int w, int h, int v
     glViewport(0, 0, viewW, viewH);
     drawFullscreen();
 
+    //Blur
     bool horizontal = true;
     int passes = 6;
     for (int i = 0;i < passes;++i) {
@@ -249,7 +249,7 @@ void Renderer::drawGrid(const std::vector<uint8_t>& indices, int w, int h, int v
         horizontal = !horizontal;
     }
 
-    // 3) Composite → backbuffer
+    //Composite
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, viewW, viewH);
     glUseProgram(progComposite);
@@ -261,14 +261,14 @@ void Renderer::drawGrid(const std::vector<uint8_t>& indices, int w, int h, int v
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, sceneTex);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, pingTex[horizontal ? 0 : 1]); // último blur
+    glBindTexture(GL_TEXTURE_2D, pingTex[horizontal ? 0 : 1]);
 
     drawFullscreen();
     glEnable(GL_BLEND);
 }
 
 void Renderer::draw(const std::vector<Cell>& cells, int w, int h, int viewW, int viewH) {
-    // Fallback: pack completo (por compatibilidad)
+
     scratch.resize(size_t(w) * size_t(h));
     for (int y = 0; y < h; ++y) {
         const Cell* row = &cells[size_t(y) * size_t(w)];
@@ -283,11 +283,9 @@ void Renderer::drawPlane(const std::uint8_t* planeM, int w, int h,
     ensureGL();
 
     if (!texValid || texW != w || texH != h) {
-        // primera vez o resize → full upload
         uploadFullCPU(planeM, w, h);
     }
     else if (rw > 0 && rh > 0) {
-        // empaquetar SOLO el rect sucio contiguo y subir vía PBO
         scratchRect.resize(size_t(rw) * size_t(rh));
         for (int y = 0; y < rh; ++y) {
             const uint8_t* srcRow = &planeM[size_t(y0 + y) * size_t(w) + size_t(x0)];
@@ -297,5 +295,5 @@ void Renderer::drawPlane(const std::uint8_t* planeM, int w, int h,
         uploadRectPBO(scratchRect.data(), rw, rh, x0, y0, w, h);
     }
 
-    drawGrid(std::vector<uint8_t>{}, w, h, viewW, viewH); // usa texturas ya subidas + post
+    drawGrid(std::vector<uint8_t>{}, w, h, viewW, viewH);
 }

@@ -32,19 +32,21 @@ void main(){
   vec4 c = colors[int(m)];
   if (c.a <= 0.0) discard;
 
+  vec3 base_lin = pow(c.rgb, vec3(2.2));
+
   // -------- variacion de color por celda --------
   ivec2 cellId = ivec2(clamp(floor(uv2 * uGrid), vec2(0), uGrid - 1.0));
   float n = hash2(cellId)*2.0 - 1.0;  // [-1,1]
   float k = 0.15;                     // intensidad
-  c.rgb = clamp(c.rgb * (1.0 + k*n), 0.0, 1.0);
+  base_lin = clamp(base_lin * (1.0 + k*n), 0.0, 1.0);
   // ----------------------------------------------
 
   vec2 cell = fract(uv2 * uGrid); 
   vec2 p = cell - vec2(0.5);        
   float r = length(p);
 
-  // emisivo por material (extra[i].x)
-  float emis = extra[int(m)].x;
+
+  float emis = max(extra[int(m)].x, 0.0);
 
    // --------- Parametros de los puntos ----------
   float radius  = 0.35;
@@ -52,7 +54,7 @@ void main(){
   // ----------------------------------------------
 
   float alpha = 1.0 - smoothstep(radius, radius + feather, r);
-  vec3 rgb = c.rgb * emis;
-  o = vec4(rgb, c.a * alpha);
+  vec3 rgb_lin = base_lin * emis;
+  o = vec4(rgb_lin, c.a * alpha);
   if (o.a <= 0.001) discard;
 }
