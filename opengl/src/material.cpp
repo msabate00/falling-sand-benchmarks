@@ -32,7 +32,8 @@ static void WaterUpdate(Engine& E, int x, int y, const Cell& self) {
     if ((Material)E.read(x + db, y + 1).m == Material::Empty && E.tryMove(x, y, db, +1, self)) return;
 
     if ((Material)E.read(x + da, y).m == Material::Empty && E.tryMove(x, y, da, 0, self)) return;
-    E.tryMove(x, y, db, 0, self);
+    if ((Material)E.read(x + db, y).m == Material::Empty && E.tryMove(x, y, db, 0, self)) return;
+
 }
 
 static void WoodUpdate(Engine& E, int x, int y, const Cell& self) {
@@ -69,7 +70,30 @@ static void FireUpdate(Engine& E, int x, int y, const Cell& self) {
                 if (E.read(x + dx, y + dy).m  == (u8)Material::Wood) {
                     E.setCell(x, y, (u8)Material::Fire);
                 }
+                if (E.read(x + dx, y + dy).m == (u8)Material::Water) {
+                    E.setCell(x, y, (u8)Material::Steam);
+                    E.setCell(x +dx, y+dy, (u8)Material::Steam);
+                }
             }
+        }
+    }
+}
+
+static void LavaUpdate(Engine& E, int x, int y, const Cell& self) {
+
+    if (E.tryMove(x, y, 0, +1, self)) return;
+    bool leftFirst = !Engine::randbit(x, y, 1);
+    int da = leftFirst ? -1 : +1, db = -da;
+
+    if ((Material)E.read(x + da, y + 1).m == Material::Empty && E.tryMove(x, y, da, +1, self)) return;
+    if ((Material)E.read(x + db, y + 1).m == Material::Empty && E.tryMove(x, y, db, +1, self)) return;
+
+    if ((Material)E.read(x + da, y).m == Material::Empty && E.tryMove(x, y, da, 0, self)) return;
+    if ((Material)E.read(x + db, y).m == Material::Empty && E.tryMove(x, y, db, 0, self)) return;
+    
+    if ((Material)E.read(x, y - 1).m == Material::Empty) {
+        if ((rand() % 100) < 1) {
+            E.setCell(x, y-1, (u8)Material::Fire);
         }
     }
 }
@@ -90,7 +114,29 @@ static void SmokeUpdate(Engine& E, int x, int y, const Cell& self) {
     }
 }
 
-static void StoneUpdate(Engine&, int, int, const Cell&) { /* inmóvil */ }
+static void SteamUpdate(Engine& E, int x, int y, const Cell& self) {
+
+    bool leftFirst = !E.randbit(x, y, 0);
+    int dxa = leftFirst ? -1 : +1, dxb = -dxa;
+
+    if (E.tryMove(x, y, dxa, -1, self)) return;
+    if (E.tryMove(x, y, dxb, -1, self)) return;
+
+    if (E.tryMove(x, y, 0, -1, self)) return;
+
+    if ((rand() % 100) < 2) {
+        if ((rand() % 100) < 90) {
+            E.setCell(x, y, (u8)Material::Empty);
+        }
+        else {
+            E.setCell(x, y, (u8)Material::Water);
+        }
+        
+    }
+
+}
+
+static void SolidUpdate(Engine&, int, int, const Cell&) { /* inmóvil */ }
 
 void registerDefaultMaterials() {
 
@@ -98,8 +144,10 @@ void registerDefaultMaterials() {
     g_mat[(u8)Material::Empty] =    {   "Empty",    0,0,0,0,           0,           1.0f,       nullptr };
     g_mat[(u8)Material::Sand] =     {   "Sand",     217,191,77,255,    3,           1.0f,       &SandUpdate };
     g_mat[(u8)Material::Water] =    {   "Water",    51,102,230,200,    1,           1.0f,       &WaterUpdate };
-    g_mat[(u8)Material::Stone] =    {   "Stone",    128,128,140,255,   255,         1.0f,       &StoneUpdate };
+    g_mat[(u8)Material::Stone] =    {   "Stone",    128,128,140,255,   255,         1.0f,       &SolidUpdate };
     g_mat[(u8)Material::Wood] =     {   "Wood",     142,86,55,255,     255,         1.0f,       &WoodUpdate };
     g_mat[(u8)Material::Fire] =     {   "Fire",     255,35,1,255,      255,         5.5f,       &FireUpdate };
+    g_mat[(u8)Material::Lava] =     {   "Lava",     205,15,1,255,      255,         15.5f,      &LavaUpdate };
     g_mat[(u8)Material::Smoke] =    {   "Smoke",    28,13,2,255,       255,         1.0f,       &SmokeUpdate };
+    g_mat[(u8)Material::Steam] =    {   "Steam",    200,200,200,255,   255,         1.0f,       &SteamUpdate };
 }

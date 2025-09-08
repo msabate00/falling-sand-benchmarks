@@ -7,7 +7,7 @@ struct Engine;
 
 using u8 = std::uint8_t;
 
-enum class Material : u8 { NullCell = -1, Empty = 0, Sand, Water, Stone, Wood, Fire, Smoke };
+enum class Material : u8 { NullCell = -1, Empty = 0, Sand, Water, Stone, Wood, Fire, Lava, Smoke, Steam };
 
 struct Cell {
     u8 m = (u8)Material::Empty;

@@ -15,7 +15,7 @@ bool Audio::init() {
 void Audio::loadAudios() {
 
     load("ignite", AUDIO_DIR  "/ignite.wav", 16);
-    load("paint", AUDIO_DIR  "/paint.wav", 1);
+    load("paint", AUDIO_DIR  "/paint.wav", 8);
 }
 
 void Audio::shutdown() {
