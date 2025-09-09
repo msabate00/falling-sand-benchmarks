@@ -11,6 +11,14 @@ struct AudioEvent {
     int x, y;  
 };
 
+struct NPC {
+    int x, y;
+    int w = 2, h = 4;
+    int dir = 1;
+    float vy = 0.0f; 
+    bool alive = true;
+};
+
 
 class Engine {
 public:
@@ -36,7 +44,7 @@ public:
     // util
     int idx(int x, int y) const { return y * w + x; }
     static bool inRange(int x, int y, int W, int H) { return x >= 0 && x < W && y >= 0 && y < H; }
-    bool inRange(int x, int y) { return x >= 0 && x < w && y >= 0 && y < h; }
+     bool inRange(int x, int y) const { return x >= 0 && x < w && y >= 0 && y < h; }
     Cell read(int x, int y) {
         return (inRange(x, y)) ? front[idx(x, y)] : Cell{ (u8)Material::NullCell };
     }
@@ -50,6 +58,10 @@ public:
 
     bool stepOnce = false;
     bool paused = false;
+
+    //NPC
+    void addNPC(int x, int y);
+    const std::vector<NPC>& getNPCs() const { return npcs; }
 
 private:
 
@@ -73,4 +85,12 @@ private:
     void markDirtyRect(int x0, int y0, int x1, int y1);
 
     std::vector<AudioEvent> audioEvents;
+
+    //NPC
+    std::vector<NPC> npcs;
+    std::vector<int> occ;
+
+    void rebuildOcc();
+    bool rectFreeOnBack(int x, int y, int w, int h, int ignoreId) const;
+    void moveNPCs();
 };

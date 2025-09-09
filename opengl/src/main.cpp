@@ -6,6 +6,7 @@
 #include "renderer.h"
 #include "ui.h"
 #include "audio.h"
+#include <cmath>
 
 static int winW = 1280, winH = 720;
 static int gridW = 320, gridH = 180;
@@ -37,6 +38,7 @@ static void key_callback(GLFWwindow*, int key, int, int action, int) {
     case GLFW_KEY_9: brushMat = Material::Empty; break;
     case GLFW_KEY_P: engine.paused = !engine.paused; break;
     case GLFW_KEY_N: engine.stepOnce = true; break;
+    case GLFW_KEY_G: engine.addNPC(gridW / 2, gridH / 2); break;
     default: break;
     }
 }
@@ -89,8 +91,30 @@ int main() {
         renderer->drawPlane(engine.planeM(), gridW, gridH, winW, winH, rx, ry, rw, rh);
 
         ui.begin(winW, winH);
+
+        
         
         ui.draw(engine, brushSize, brushMat);
+
+        // --- NPC overlay temp ---
+        {
+           
+            float sx = std::floor((float)winW / (float)gridW);
+            float sy = std::floor((float)winH / (float)gridH);
+
+            float s = std::fmax(1.0f, std::fmin(sx, sy));
+            float sizeW = gridW * s, sizeH = gridH * s;
+            float offX = (winW - sizeW) * 0.5f;
+            float offY = (winH - sizeH) * 0.5f;
+
+            uint32_t body = RGBAu32(220, 40, 200, 255);
+            for (const auto& n : engine.getNPCs()) {
+                if (!n.alive) continue;
+                float px = offX + n.x * s;
+                float py = offY + n.y * s;
+                ui.rect(px, py, n.w * s, n.h * s, body);
+            }
+        }
 
         ui.end();
 

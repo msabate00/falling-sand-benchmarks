@@ -19,10 +19,13 @@ Engine::Engine(int gridW, int gridH) : w(gridW), h(gridH) {
     back.assign(w * h, Cell{ (u8)Material::Empty,0 });
     mFront.assign(w * h, (u8)Material::Empty);
     mBack.assign(w * h, (u8)Material::Empty);
+    occ.assign(w * h, 0);
     registerDefaultMaterials();
-    // Dirty-rect: forzar upload completo inicial
+
+
     clearDirty();
     markDirtyRect(0, 0, w - 1, h - 1);
+
 }
 
 // ---------------------- dirty helpers -------------------------
@@ -61,11 +64,13 @@ bool Engine::takeDirtyRect(int& x, int& y, int& rw, int& rh) {
 void Engine::update(float dt) {
     accumulator += dt;
     while (accumulator >= fixedStep && (!paused || stepOnce)) {
-        // back = front; y SoA
         back = front;
         mBack = mFront;
 
+        rebuildOcc();
         step();
+        moveNPCs();
+        rebuildOcc();
 
         swapBuffers();
         accumulator -= fixedStep;
@@ -76,6 +81,7 @@ void Engine::update(float dt) {
 
     if (paused) accumulator = 0;
 }
+void Engine::addNPC(int x, int y) { npcs.push_back(NPC{ x, y }); markDirty(x, y); }
 
 bool Engine::tryMove(int sx, int sy, int dx, int dy, const Cell& c) {
     int nx = sx + dx, ny = sy + dy;
@@ -83,6 +89,7 @@ bool Engine::tryMove(int sx, int sy, int dx, int dy, const Cell& c) {
     int si = idx(sx, sy), ni = idx(nx, ny);
 
     if (back[ni].m != (u8)Material::Empty) return false;
+    if (occ[ni]) return false;
 
     back[ni] = c;
     if (back[si].m == front[si].m) back[si].m = (u8)Material::Empty;
@@ -102,6 +109,7 @@ bool Engine::trySwap(int sx, int sy, int dx, int dy, const Cell& c) {
     int si = idx(sx, sy);
     int ni = idx(nx, ny);
     if (si == ni) return false;
+    if (occ[ni]) return false;
 
     const Cell& dst = front[ni];
 
@@ -165,4 +173,60 @@ void Engine::paint(int cx, int cy, Material m, int r) {
         }
     markDirtyRect(xmin, ymin, xmax, ymax);
     audioEvents.push_back({ AudioEvent::Type::Paint, cx, cy });
+}
+
+// ---------------------- npc ---------------------------
+void Engine::rebuildOcc() {
+    occ.assign(w * h, 0);
+    for (int i = 0;i < (int)npcs.size();++i) {
+        const auto& n = npcs[i];
+        if (!n.alive) continue;
+        for (int yy = 0; yy < n.h; ++yy)
+            for (int xx = 0; xx < n.w; ++xx) {
+                int gx = n.x + xx, gy = n.y + yy;
+                if (inRange(gx, gy)) occ[idx(gx, gy)] = i + 1;
+            }
+    }
+}
+
+bool Engine::rectFreeOnBack(int x, int y, int w, int h, int ignoreId) const {
+    for (int yy = 0; yy < h; ++yy)
+        for (int xx = 0; xx < w; ++xx) {
+            int gx = x + xx, gy = y + yy;
+            if (!inRange(gx, gy)) return false;
+            int i = idx(gx, gy);
+            if (back[i].m != (u8)Material::Empty) return false;
+            int occId = occ[i];
+            if (occId != 0 && occId != ignoreId) return false;
+        }
+    return true;
+}
+
+void Engine::moveNPCs() {
+    const int kMaxStep = 1;
+    for (int i = 0; i < (int)npcs.size(); ++i) {
+        auto& n = npcs[i];
+        if (!n.alive) continue;
+        int id = i + 1;
+
+        // aer
+        if (rectFreeOnBack(n.x, n.y + 1, n.w, n.h, id)) { n.y += 1; continue; }
+
+        int nx = n.x + n.dir;
+
+        //plano
+        if (rectFreeOnBack(nx, n.y, n.w, n.h, id)) { n.x = nx; continue; }
+
+        //diagonal
+        bool climbed = false;
+        for (int step = 1; step <= kMaxStep; ++step) {
+            if (rectFreeOnBack(nx, n.y - step, n.w, n.h, id)) {
+                n.y -= step;
+                n.x = nx;
+                climbed = true;
+                break;
+            }
+        }
+        if (!climbed) n.dir = -n.dir;
+    }
 }
