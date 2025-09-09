@@ -138,6 +138,10 @@ static void SteamUpdate(Engine& E, int x, int y, const Cell& self) {
 
 static void SolidUpdate(Engine&, int, int, const Cell&) { /* inmóvil */ }
 
+static void NpcCell(Engine& E, int x, int y, const Cell& self) {
+
+}
+
 void registerDefaultMaterials() {
 
     //MatProp                           //NAME      //Color             //Densidad  //Emissive
@@ -150,4 +154,7 @@ void registerDefaultMaterials() {
     g_mat[(u8)Material::Lava] =     {   "Lava",     205,15,1,255,      255,         15.5f,      &LavaUpdate };
     g_mat[(u8)Material::Smoke] =    {   "Smoke",    28,13,2,255,       255,         1.0f,       &SmokeUpdate };
     g_mat[(u8)Material::Steam] =    {   "Steam",    200,200,200,255,   255,         1.0f,       &SteamUpdate };
+
+
+    g_mat[(u8)Material::NpcCell] = {    "Spawn",    220, 40, 200,255,           0,           1.0f,       &NpcCell };
 }

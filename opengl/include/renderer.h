@@ -2,6 +2,8 @@
 #include <vector>
 #include <cstdint>
 #include "material.h"
+#include "engine.h"
+#include "ui.h"
 
 class Renderer {
 public:
@@ -17,6 +19,8 @@ public:
 
     // Útil si quieres subir todo el plano SoA directamente
     void drawGrid(const std::vector<uint8_t>& indices, int w, int h, int viewW, int viewH);
+
+    void drawNPC(Engine& E, UI& UI, int winW, int winH, int gridW, int gridH);
 
 private:
     // --- Grid pass (índices → color con paleta UBO + discos) ---

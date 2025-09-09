@@ -3,6 +3,7 @@
 #include <glad/gl.h>
 #include <string>
 #include <cstring>
+#include <cmath>
 
 static unsigned int makeShader(unsigned int type, const char* src) {
     unsigned int s = glCreateShader(type);
@@ -296,4 +297,23 @@ void Renderer::drawPlane(const std::uint8_t* planeM, int w, int h,
     }
 
     drawGrid(std::vector<uint8_t>{}, w, h, viewW, viewH);
+}
+
+void Renderer::drawNPC(Engine& E, UI& UI, int winW, int winH, int gridW, int gridH) {
+
+    float sx = std::floor((float)winW / (float)gridW);
+    float sy = std::floor((float)winH / (float)gridH);
+
+    float s = std::fmax(1.0f, std::fmin(sx, sy));
+    float sizeW = gridW * s, sizeH = gridH * s;
+    float offX = (winW - sizeW) * 0.5f;
+    float offY = (winH - sizeH) * 0.5f;
+
+    uint32_t body = RGBAu32(220, 40, 200, 255);
+    for (const auto& n : E.getNPCs()) {
+        if (!n.alive) continue;
+        float px = offX + n.x * s;
+        float py = offY + n.y * s;
+        UI.rect(px, py, n.w * s, n.h * s, body);
+    }
 }

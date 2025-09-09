@@ -139,6 +139,11 @@ void Engine::setCell(int x, int y, u8 m) {
     }
 }
 
+Material Engine::getCell(int x, int y) {
+    int i = idx(x, y);
+    return (Material)back[i].m;
+}
+
 void Engine::step() {
     for (int y = h - 1; y >= 0; --y) {
         bool l2r = ((y ^ parity) & 1);
@@ -160,6 +165,12 @@ void Engine::paint(int cx, int cy, Material m, int r) {
     int r2 = r * r;
     int xmin = std::max(0, cx - r), xmax = std::min(w - 1, cx + r);
     int ymin = std::max(0, cy - r), ymax = std::min(h - 1, cy + r);
+
+
+    if (m == Material::NpcCell) {
+        addNPC(cx, cy);
+        return;
+    }
 
     for (int y = ymin; y <= ymax; ++y)
         for (int x = xmin; x <= xmax; ++x) {
@@ -205,11 +216,24 @@ bool Engine::rectFreeOnBack(int x, int y, int w, int h, int ignoreId) const {
 void Engine::moveNPCs() {
     const int kMaxStep = 1;
     for (int i = 0; i < (int)npcs.size(); ++i) {
+
+
         auto& n = npcs[i];
         if (!n.alive) continue;
         int id = i + 1;
 
-        // aer
+        for (int yy = -1; yy <= n.h && n.alive; ++yy)
+            for (int xx = -1; xx <= n.w && n.alive; ++xx) {
+                if (inRange(n.x + xx, n.y + yy)) {
+                    u8 m = (u8)getCell(n.x + xx, n.y + yy);
+                    if (m == (u8)Material::Fire || m == (u8)Material::Lava) {
+                        n.alive = false;
+                        continue;
+                    }
+                }  
+            }
+        
+        // caer
         if (rectFreeOnBack(n.x, n.y + 1, n.w, n.h, id)) { n.y += 1; continue; }
 
         int nx = n.x + n.dir;

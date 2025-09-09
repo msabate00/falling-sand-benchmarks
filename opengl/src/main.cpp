@@ -92,29 +92,11 @@ int main() {
 
         ui.begin(winW, winH);
 
-        
+        renderer->drawNPC(engine, ui, winW, winH, gridW, gridH);
         
         ui.draw(engine, brushSize, brushMat);
 
-        // --- NPC overlay temp ---
-        {
-           
-            float sx = std::floor((float)winW / (float)gridW);
-            float sy = std::floor((float)winH / (float)gridH);
-
-            float s = std::fmax(1.0f, std::fmin(sx, sy));
-            float sizeW = gridW * s, sizeH = gridH * s;
-            float offX = (winW - sizeW) * 0.5f;
-            float offY = (winH - sizeH) * 0.5f;
-
-            uint32_t body = RGBAu32(220, 40, 200, 255);
-            for (const auto& n : engine.getNPCs()) {
-                if (!n.alive) continue;
-                float px = offX + n.x * s;
-                float py = offY + n.y * s;
-                ui.rect(px, py, n.w * s, n.h * s, body);
-            }
-        }
+        
 
         ui.end();
 

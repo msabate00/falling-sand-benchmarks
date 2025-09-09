@@ -85,7 +85,7 @@ void UI::draw(Engine& E, int& brushSize, Material& brushMat) {
 	for (int i = 0; i < 256; ++i) {
 		const MatProps& mp = matProps((u8)i);
 
-		if (mp.name.length() >0) {
+		if (mp.name.length() > 0) {
 			uint32_t c = RGBAu32(mp.r, mp.g, mp.b, 230);
 			if (makeBtn(c)) brushMat = (Material)i;
 		}

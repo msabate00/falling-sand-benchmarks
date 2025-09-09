@@ -56,6 +56,8 @@ public:
 
     void setCell(int x, int y, u8 m);
 
+    Material getCell(int x, int y);
+
     bool stepOnce = false;
     bool paused = false;
 
