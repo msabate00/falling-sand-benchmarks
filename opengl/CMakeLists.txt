@@ -22,15 +22,15 @@ target_include_directories(glad_gl_core_33 PUBLIC
 )
 
 # === Ejecutable ===
-add_executable(FallingSand
-  src/main.cpp
-  src/core/engine.cpp
-  src/core/material.cpp
-  src/render/renderer.cpp
-  src/utils.cpp
-  src/ui/ui.cpp
-  src/audio/audio.cpp
+file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
 )
+
+add_executable(FallingSand ${SRC})
+target_include_directories(FallingSand PRIVATE src)
+
 target_include_directories(FallingSand PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
