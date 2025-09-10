@@ -1,11 +1,11 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <chrono>
-#include "engine.h"
-#include "material.h"
-#include "renderer.h"
-#include "ui.h"
-#include "audio.h"
+#include "core/engine.h"
+#include "core/material.h"
+#include "render/renderer.h"
+#include "ui/ui.h"
+#include "audio/audio.h"
 #include <cmath>
 
 static int winW = 1280, winH = 720;

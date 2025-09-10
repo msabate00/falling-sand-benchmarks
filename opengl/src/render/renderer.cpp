@@ -1,5 +1,5 @@
 ﻿#include "renderer.h"
-#include "utils.h"
+#include "../utils.h"
 #include <glad/gl.h>
 #include <string>
 #include <cstring>

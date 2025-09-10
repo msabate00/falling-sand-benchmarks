@@ -1,8 +1,8 @@
 #include "ui.h"
 #include <glad/gl.h>
 #include <cstring>
-#include "material.h"
-#include "engine.h"
+#include "../core/material.h"
+#include "../core/engine.h"
 
 
 static unsigned makeShader(unsigned type, const char* src) {

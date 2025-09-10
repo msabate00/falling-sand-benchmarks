@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include <vector>
 #include <cstdint>
-#include "material.h"
-#include "engine.h"
-#include "ui.h"
+#include "../core/material.h"
+#include "../core/engine.h"
+#include "../ui/ui.h"
 
 class Renderer {
 public:
